@@ -1,0 +1,266 @@
+
+
+  
+Current configuration : 6324 bytes
+!
+! Last configuration change at 07:32:23 UTC Mon Sep 14 2026 by cisco
+! NVRAM config last updated at 07:32:23 UTC Mon Sep 14 2026 by cisco
+!
+version 15.6
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname R1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+enable secret 9 $9$0upSqoEaz3uvzb$HOp/IKtl9rS9Kgezh3gGdVvezc/zYAgZrk1DRjSrKGk
+!
+no aaa new-model
+ethernet lmi ce
+!
+!
+!
+mmi polling-interval 60
+no mmi auto-configure
+no mmi pvc
+mmi snmp-timeout 180
+!
+!
+!
+!
+!
+!
+!
+!
+ip dhcp excluded-address 10.0.0.1 10.0.0.10
+ip dhcp excluded-address 10.1.0.1 10.1.0.10
+ip dhcp excluded-address 10.2.0.1 10.2.0.10
+ip dhcp excluded-address 10.0.0.17 10.0.0.26
+ip dhcp excluded-address 10.3.0.1 10.3.0.10
+ip dhcp excluded-address 10.4.0.1 10.4.0.10
+ip dhcp excluded-address 10.6.0.1 10.6.0.10
+!
+ip dhcp pool A-Mgmt
+ network 10.0.0.0 255.255.255.240
+ default-router 10.5.0.4 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLab
+ dns-server 10.5.0.4 
+!
+ip dhcp pool A-PC
+ network 10.1.0.0 255.255.255.0
+ default-router 10.1.0.1 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLab
+ dns-server 10.5.0.4 
+!
+ip dhcp pool A-Phone
+ network 10.2.0.0 255.255.255.0
+ default-router 10.2.0.1 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLa
+ dns-server 10.5.0.4 
+!
+ip dhcp pool B-Mgmt
+ network 10.0.0.16 255.255.255.240
+ default-router 10.0.0.17 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLab
+ dns-server 10.5.0.4 
+!
+ip dhcp pool B-PC
+ network 10.3.0.0 255.255.255.0
+ default-router 10.3.0.1 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLab
+ dns-server 10.5.0.4 
+!
+ip dhcp pool B-Phone
+ network 10.4.0.0 255.255.255.0
+ default-router 10.4.0.1 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLab
+ dns-server 10.5.0.4 
+!
+ip dhcp pool Wi-Fi
+ network 10.6.0.0 255.255.255.0
+ default-router 10.6.0.1 
+ option 43 ip 10.0.0.7 
+ domain-name SankeyLab
+ dns-server 10.5.0.4 
+!
+!
+!
+ip domain name SankeyLab
+ip name-server 10.5.0.4
+ip cef
+ipv6 unicast-routing
+ipv6 cef
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+username cisco secret 9 $9$XABTsle4gdFKQR$45l6OSfRjrHfRieu2MLdGh3t3W9RnAdloQyskQ6nM.w
+!
+redundancy
+!
+lldp run
+no cdp run
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ ip address 10.0.0.76 255.255.255.255
+ ip ospf 1 area 0
+!
+interface GigabitEthernet0/0
+ description connection ETH0/2 CSW2
+ ip address 10.0.0.37 255.255.255.252
+ ip nat inside
+ ip virtual-reassembly in
+ ip tcp adjust-mss 1200
+ ip ospf network point-to-point
+ ip ospf 1 area 0
+ duplex auto
+ speed auto
+ media-type rj45
+ ipv6 address 2001:DB8:A2::/64 eui-64
+!
+interface GigabitEthernet0/1
+ description connection ETH0/2 CSW1
+ ip address 10.0.0.33 255.255.255.252
+ ip nat inside
+ ip virtual-reassembly in
+ ip tcp adjust-mss 1200
+ ip ospf network point-to-point
+ ip ospf 1 area 0
+ duplex auto
+ speed auto
+ media-type rj45
+ ipv6 address 2001:DB8:A1::/64 eui-64
+!
+interface GigabitEthernet0/2
+ ip address 203.0.113.6 255.255.255.252
+ ip mtu 1200
+ ip nat outside
+ ip virtual-reassembly in
+ ip tcp adjust-mss 1200
+ duplex auto
+ speed auto
+ media-type rj45
+ ipv6 address 2001:DB8:B::2/64
+!
+interface GigabitEthernet0/3
+ description ISP-B
+ ip address dhcp
+ ip mtu 1200
+ ip nat outside
+ ip virtual-reassembly in
+ ip tcp adjust-mss 1200
+ duplex auto
+ speed auto
+ media-type rj45
+ ipv6 address 2001:DB8:A::2/64
+!
+router ospf 1
+ router-id 10.0.0.76
+ passive-interface Loopback0
+ default-information originate
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip nat inside source list 2 interface GigabitEthernet0/3 overload
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp
+ip ssh version 2
+!
+logging trap debugging
+logging host 10.5.0.4
+ipv6 route ::/0 GigabitEthernet0/2 2001:DB8:B::1 2
+ipv6 route ::/0 2001:DB8:A::1
+!
+snmp-server community SNMPSTRING RO
+snmp-server chassis-id 
+!
+access-list 1 permit 10.1.0.0 0.0.0.255
+access-list 2 permit 10.1.0.0 0.0.0.255
+access-list 2 permit 10.2.0.0 0.0.0.255
+access-list 2 permit 10.3.0.0 0.0.0.255
+access-list 2 permit 10.4.0.0 0.0.0.255
+access-list 2 permit 10.6.0.0 0.0.0.255
+access-list 2 permit 10.5.0.0 0.0.0.255
+!
+control-plane
+!
+banner exec ^C
+**************************************************************************
+* IOSv is strictly limited to use for evaluation, demonstration and IOS  *
+* education. IOSv is provided as-is and is not supported by Cisco's      *
+* Technical Advisory Center. Any use or disclosure, in whole or in part, *
+* of the IOSv Software or Documentation to any third party for any       *
+* purposes is expressly prohibited except as otherwise authorized by     *
+* Cisco in writing.                                                      *
+**************************************************************************^C
+banner incoming ^C
+**************************************************************************
+* IOSv is strictly limited to use for evaluation, demonstration and IOS  *
+* education. IOSv is provided as-is and is not supported by Cisco's      *
+* Technical Advisory Center. Any use or disclosure, in whole or in part, *
+* of the IOSv Software or Documentation to any third party for any       *
+* purposes is expressly prohibited except as otherwise authorized by     *
+* Cisco in writing.                                                      *
+**************************************************************************^C
+banner login ^C
+**************************************************************************
+* IOSv is strictly limited to use for evaluation, demonstration and IOS  *
+* education. IOSv is provided as-is and is not supported by Cisco's      *
+* Technical Advisory Center. Any use or disclosure, in whole or in part, *
+* of the IOSv Software or Documentation to any third party for any       *
+* purposes is expressly prohibited except as otherwise authorized by     *
+* Cisco in writing.                                                      *
+**************************************************************************^C
+!
+line con 0
+ exec-timeout 30 0
+ logging synchronous
+ login local
+line aux 0
+line vty 0 4
+ access-class 1 in
+ logging synchronous
+ login local
+ transport input telnet ssh
+line vty 5 15
+ access-class 1 in
+ logging synchronous
+ login local
+ transport input telnet ssh
+!
+no scheduler allocate
+ntp authentication-key 1 md5 141411050D 7
+ntp trusted-key 1
+ntp master 5
+ntp server 216.239.35.0
+!
+end
+
+R1#

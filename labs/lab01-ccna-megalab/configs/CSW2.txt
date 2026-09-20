@@ -1,0 +1,194 @@
+
+
+Current configuration : 2966 bytes
+!
+! Last configuration change at 05:30:18 UTC Mon Sep 14 2026
+!
+version 15.2
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+service compress-config
+!
+hostname CSW2
+!
+boot-start-marker
+boot-end-marker
+!
+!
+enable secret 9 $9$h53bHlWC/QbPe7$HfxkrvOQDlTu1PGaTEtdwFaT6pob..zUl4nL2.v/q5g
+!
+username cisco secret 9 $9$6TPVv./9BoZyWd$EwJ2NoKELd3VPx.2Pkj7PU17tNOSV05dL9hHR3UOmAE
+no aaa new-model
+!
+!
+!
+!
+!
+!
+!
+!
+ip domain-name SankeyLab
+ip name-server 10.5.0.4
+ip cef
+ipv6 unicast-routing
+ipv6 cef
+!
+!
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+lldp run
+no cdp run
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ ip address 10.0.0.78 255.255.255.255
+!
+interface Port-channel1
+ no switchport
+ ip address 10.0.0.42 255.255.255.252
+ ip ospf network point-to-point
+ ipv6 enable
+!
+interface Ethernet0/0
+ description connection Po1 CSW2
+ no switchport
+ no ip address
+ channel-group 1 mode on
+!
+interface Ethernet0/1
+ description connection Po1 CSW2
+ no switchport
+ no ip address
+ channel-group 1 mode on
+!
+interface Ethernet0/2
+ description connection R1 Gig 0/0
+ no switchport
+ ip address 10.0.0.38 255.255.255.252
+ ip ospf network point-to-point
+ ipv6 address 2001:DB8:A2::/64 eui-64
+!
+interface Ethernet0/3
+ no switchport
+ ip address 10.0.0.61 255.255.255.252
+ ip ospf network point-to-point
+!
+interface Ethernet1/0
+ no switchport
+ ip address 10.0.0.65 255.255.255.252
+ ip ospf network point-to-point
+!
+interface Ethernet1/1
+ no switchport
+ ip address 10.0.0.69 255.255.255.252
+ ip ospf network point-to-point
+!
+interface Ethernet1/2
+ no switchport
+ ip address 10.0.0.73 255.255.255.252
+ ip ospf network point-to-point
+!
+interface Ethernet1/3
+ shutdown
+!
+interface Ethernet2/0
+ shutdown
+!
+interface Ethernet2/1
+ shutdown
+!
+interface Ethernet2/2
+ shutdown
+!
+interface Ethernet2/3
+ shutdown
+!
+interface Ethernet3/0
+ shutdown
+!
+interface Ethernet3/1
+ shutdown
+!
+interface Ethernet3/2
+ shutdown
+!
+interface Ethernet3/3
+ shutdown
+!
+interface Ethernet4/0
+ shutdown
+!
+interface Ethernet4/1
+ shutdown
+!
+interface Ethernet4/2
+ shutdown
+!
+interface Ethernet4/3
+ shutdown
+!
+interface Ethernet5/0
+ shutdown
+!
+interface Ethernet5/1
+ shutdown
+!
+interface Ethernet5/2
+ shutdown
+!
+interface Ethernet5/3
+ shutdown
+!
+router ospf 1
+ router-id 10.0.0.78
+ passive-interface Loopback0
+ network 10.0.0.38 0.0.0.0 area 0
+ network 10.0.0.42 0.0.0.0 area 0
+ network 10.0.0.61 0.0.0.0 area 0
+ network 10.0.0.65 0.0.0.0 area 0
+ network 10.0.0.69 0.0.0.0 area 0
+ network 10.0.0.73 0.0.0.0 area 0
+ network 10.0.0.78 0.0.0.0 area 0
+!
+ip forward-protocol nd
+!
+ip http server
+!
+ip ssh version 2
+ip ssh server algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+ip ssh client algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+!
+!
+!
+!
+!
+control-plane
+!
+!
+line con 0
+ logging synchronous
+ login local
+line aux 0
+line vty 0 4
+ login local
+ transport input ssh
+!
+ntp authentication-key 1 md5 0007100805 7
+ntp trusted-key 1
+!
+!

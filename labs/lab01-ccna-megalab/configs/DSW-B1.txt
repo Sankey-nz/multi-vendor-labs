@@ -1,0 +1,235 @@
+
+
+Current configuration : 4236 bytes
+!
+! Last configuration change at 05:29:42 UTC Mon Sep 14 2026
+!
+version 15.2
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+service compress-config
+!
+hostname DSW-B1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+logging buffered 8192
+enable secret 9 $9$ZVtsdBimuUFx9N$4jPj97HsKoCwB8Po/JsvhAhnosAW7y9BLTdrRhQ1saI
+!
+username cisco secret 9 $9$QQHpsLqSmraIU7$OjABx3dBscCsH.oLWriXf40GZJFhy8XhqTOPa/EuLEk
+no aaa new-model
+!
+!
+!
+!
+!
+!
+!
+!
+ip domain-name SankeyLab
+ip name-server 10.5.0.4
+ip cef
+no ipv6 cef
+!
+!
+!
+spanning-tree mode rapid-pvst
+spanning-tree extend system-id
+spanning-tree vlan 10,99 priority 0
+spanning-tree vlan 20,30 priority 4096
+!
+lldp run
+no cdp run
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ ip address 10.0.0.81 255.255.255.255
+!
+interface Port-channel1
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+!
+interface Ethernet0/0
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+ channel-group 1 mode active
+!
+interface Ethernet0/1
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+ channel-group 1 mode active
+!
+interface Ethernet0/2
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+!
+interface Ethernet0/3
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+!
+interface Ethernet1/0
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+!
+interface Ethernet1/1
+ no switchport
+ ip address 10.0.0.54 255.255.255.252
+ ip ospf network point-to-point
+!
+interface Ethernet1/2
+ no switchport
+ ip address 10.0.0.70 255.255.255.252
+ ip ospf network point-to-point
+!
+interface Ethernet1/3
+ shutdown
+!
+interface Ethernet2/0
+ shutdown
+!
+interface Ethernet2/1
+ shutdown
+!
+interface Ethernet2/2
+ shutdown
+!
+interface Ethernet2/3
+ shutdown
+!
+interface Ethernet3/0
+ shutdown
+!
+interface Ethernet3/1
+ shutdown
+!
+interface Ethernet3/2
+ shutdown
+!
+interface Ethernet3/3
+ shutdown
+!
+interface Ethernet4/0
+ shutdown
+!
+interface Ethernet4/1
+ shutdown
+!
+interface Ethernet4/2
+ shutdown
+!
+interface Ethernet4/3
+ shutdown
+!
+interface Vlan10
+ ip address 10.3.0.2 255.255.255.0
+ ip helper-address 10.0.0.76 
+ standby version 2
+ standby 2 ip 10.3.0.1
+ standby 2 priority 105
+ standby 2 preempt
+!
+interface Vlan20
+ ip address 10.4.0.2 255.255.255.0
+ ip helper-address 10.0.0.76 
+ standby version 2
+ standby 3 ip 10.4.0.1
+!
+interface Vlan30
+ ip address 10.5.0.2 255.255.255.0
+ ip helper-address 10.0.0.76 
+ standby version 2
+ standby 4 ip 10.5.0.1
+!
+interface Vlan99
+ ip address 10.0.0.18 255.255.255.240
+ ip helper-address 10.0.0.76 
+ standby version 2
+ standby 1 ip 10.0.0.17
+ standby 1 priority 105
+ standby 1 preempt
+!
+router ospf 1
+ router-id 10.0.0.81
+ passive-interface Loopback0
+ passive-interface Vlan10
+ passive-interface Vlan20
+ passive-interface Vlan30
+ network 10.0.0.18 0.0.0.0 area 0
+ network 10.0.0.54 0.0.0.0 area 0
+ network 10.0.0.70 0.0.0.0 area 0
+ network 10.0.0.81 0.0.0.0 area 0
+ network 10.3.0.2 0.0.0.0 area 0
+ network 10.4.0.2 0.0.0.0 area 0
+ network 10.5.0.2 0.0.0.0 area 0
+!
+ip default-gateway 10.0.0.17
+ip forward-protocol nd
+!
+ip http server
+!
+ip ssh version 2
+ip ssh server algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+ip ssh client algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+!
+!
+logging trap debugging
+logging host 10.5.0.4
+access-list 1 permit 10.1.0.0 0.0.0.255
+!
+!
+snmp-server community SNMPSTRING RO
+!
+control-plane
+!
+!
+line con 0
+ exec-timeout 30 0
+ logging synchronous
+ login local
+line aux 0
+line vty 0 4
+ access-class 1 in
+ logging synchronous
+ login local
+ transport input telnet ssh
+!
+ntp authentication-key 1 md5 020507550A 7
+ntp trusted-key 1
+!
+!
+end
+
+DSW-B1#

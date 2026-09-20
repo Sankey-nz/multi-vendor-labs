@@ -1,0 +1,217 @@
+{
+  "main": {
+    "id": "c972e7fab2c6d70d",
+    "type": "split",
+    "children": [
+      {
+        "id": "2cd09d8b9f0db211",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7fe13b1856963697",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "P03-IP-Addressing-L3-EtherChannel-HSRP"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8db68ac5ccaf3e2a",
+    "type": "split",
+    "children": [
+      {
+        "id": "6c9582db0bca7e31",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "cfc5640bd92fabdb",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "1c3079c1457ccaa2",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "5e53175341308b75",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "right": {
+    "id": "de9e638ac821e5c6",
+    "type": "split",
+    "children": [
+      {
+        "id": "25fc53d82ebbb4da",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "796c7b3da20c2f69",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "86e49e92dd417db0",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "b3d4790766eb2da9",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "d56aa2012846e977",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "991c8954bd633b66",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "7fe13b1856963697",
+  "lastOpenFiles": [
+    "obsidian-notes/P06-Network-Services.md",
+    "obsidian-notes/P01-Initial-Setup.md",
+    "obsidian-notes/00-INDEX.md",
+    "obsidian-notes/_Template-CCNA-Part.md",
+    "Welcome.md",
+    "Templates/3-Template.md",
+    "Templates",
+    "README.md",
+    "obsidian-notes/multi-vendors-lab/Welcome.md",
+    "obsidian-notes/P09-Wireless-LAN.md",
+    "obsidian-notes/P08-IPv6.md",
+    "obsidian-notes/P07-Security.md",
+    "obsidian-notes/P05-OSPF-and-Static-Routing.md",
+    "obsidian-notes/P04-Rapid-Spanning-Tree.md",
+    "obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md",
+    "obsidian-notes/P02-VLANs-and-L2-EtherChannel.md",
+    "obsidian-notes/multi-vendors-lab",
+    "obsidian-notes",
+    "lab01-ccna-megalab/README.md",
+    "lab01-ccna-megalab/addressing-table.md",
+    "lab01-ccna-megalab",
+    "desktop.ini"
+  ]
+}

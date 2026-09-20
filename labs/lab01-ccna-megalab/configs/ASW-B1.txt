@@ -1,0 +1,141 @@
+show running-config
+Building configuration...
+
+Current configuration : 2513 bytes
+!
+! Last configuration change at 19:05:11 UTC Sun Sep 20 2026
+!
+version 15.2
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service password-encryption
+service compress-config
+!
+hostname ASW-B1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+logging buffered 8192
+enable secret 9 $9$UD0T7m/6vQIoWt$KiixZTIW5mhMTWLXKJGZ.cpQl4h207GZFTbqCqyka7w
+!
+username cisco secret 9 $9$RSH.fQI4JpHSdd$gs2ILHy/NzF6gFT3dKFcluvld5r3zh1VMBGgv8ddMpg
+no aaa new-model
+!
+!
+!
+!
+!
+ip arp inspection vlan 10,20,30,99
+ip arp inspection validate src-mac dst-mac ip 
+!
+!
+!
+ip dhcp snooping vlan 10,20,30,99
+no ip dhcp snooping information option
+ip dhcp snooping
+ip domain-name SankeyLab
+ip name-server 10.5.0.4
+ip cef
+no ipv6 cef
+!
+!
+!
+spanning-tree mode rapid-pvst
+spanning-tree extend system-id
+!
+lldp run
+no cdp run
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Ethernet0/0
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+ ip arp inspection trust
+ ip dhcp snooping trust
+!
+interface Ethernet0/1
+ switchport trunk allowed vlan 10,20,30,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 1000
+ switchport mode trunk
+ switchport nonegotiate
+ ip arp inspection trust
+ ip dhcp snooping trust
+!
+interface Ethernet0/2
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ switchport voice vlan 20
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+ switchport port-security mac-address sticky 0050.7966.6847
+ switchport port-security
+ spanning-tree portfast edge
+ spanning-tree bpduguard enable
+ ip dhcp snooping limit rate 15
+!
+interface Ethernet0/3
+ shutdown
+ spanning-tree portfast edge
+ spanning-tree bpduguard enable
+!
+interface Vlan99
+ ip address 10.0.0.20 255.255.255.240
+!
+ip default-gateway 10.0.0.17
+ip forward-protocol nd
+!
+ip http server
+!
+ip ssh version 2
+ip ssh server algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+ip ssh client algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+!
+!
+logging trap debugging
+logging host 10.5.0.4
+access-list 1 permit 10.1.0.0 0.0.0.255
+access-list 1 permit 10.0.0.0 0.0.0.255
+!
+!
+snmp-server community SNMPSTRING RO
+!
+control-plane
+!
+!
+line con 0
+ exec-timeout 30 0
+ logging synchronous
+ login local
+line aux 0
+line vty 0 4
+ access-class 1 in
+ logging synchronous
+ login local
+ transport input telnet ssh
+!
+ntp authentication-key 1 md5 0110050A5A 7
+ntp trusted-key 1
+!
+!
+end
+
+ASW-B1#
