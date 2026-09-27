@@ -1,27 +1,6 @@
----
-title: "P05 — OSPF & Static Routing"
-created: 2025-01-01
-updated: 2025-01-01
-tags:
-  - ccna
-  - netbridge
-  - networking
-  - ospf
-  - static-routing
-  - floating-static
-  - default-route
-  - asbr
-  - passive-interface
-part: 5
-topic: OSPF & Static Routing
-status: reviewed
-lab: CCNA Mega Lab
-source: CCNA_Mega_Lab_Step_By_Step_Guide.md
----
-
 # P05 — OSPF & Static Routing
 
-> [!info] Part Summary
+> [!NOTE] Part Summary
 > **Topic:** Enable OSPF across all L3 devices, configure dual default routes on R1 for ISP redundancy, and advertise the default route into OSPF
 > **NetBridge Scenario:** VLANs have IPs and gateways — but traffic can't reach the internet or cross between offices without routing. NetBridge deploys OSPF Area 0 across the entire network, adds a floating static route for ISP failover, and lets R1 inject a default route so every device knows how to reach the internet.
 > **Key Concepts:** OSPF process, Area 0, router ID, `network` command, passive interfaces, `network-type point-to-point`, default route, `default-information originate`, floating static route, AD
@@ -31,7 +10,7 @@ source: CCNA_Mega_Lab_Step_By_Step_Guide.md
 
 ## 🗺️ Big Picture
 
-> [!tip] Mental Model
+> [!TIP] Mental Model
 > OSPF is the "GPS system" — it discovers all routes and shares them across the network. Static routes are the "hardcoded fallback" — when the GPS doesn't know a route (like the internet), you tell it manually. The floating static provides a backup ISP path that only activates if the primary disappears.
 
 ```
@@ -47,8 +26,8 @@ Internet
 ```
 
 > [!cross-ref] Cross-Reference
-> → **[[P03-IP-Addressing-L3-EtherChannel-HSRP]]:** All L3 interfaces configured in Part 3 are activated for OSPF here
-> → **[[P06-Network-Services]]:** DHCP relay (`ip helper-address`) uses R1's loopback — which OSPF makes reachable
+> → **[P03-IP-Addressing-L3-EtherChannel-HSRP](./P03-IP-Addressing-L3-EtherChannel-HSRP.md):** All L3 interfaces configured in Part 3 are activated for OSPF here
+> → **[P06-Network-Services](./P06-Network-Services.md):** DHCP relay (`ip helper-address`) uses R1's loopback — which OSPF makes reachable
 
 ---
 
@@ -56,7 +35,7 @@ Internet
 
 ### Section 1 — OSPF Basic Configuration (All L3 Devices)
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **OSPF** (Open Shortest Path First) is a **link-state** routing protocol — every router builds a complete map of the network (LSDB) and independently runs Dijkstra's algorithm to find the best path. Process number is **locally significant** (doesn't need to match between devices).
 
 ```
@@ -105,7 +84,7 @@ router ospf 1
 
 ### Section 2 — Passive Interfaces
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **Passive interface** stops OSPF Hello packets on an interface — it still advertises the network into OSPF but doesn't try to form neighbors. Used on loopbacks (can't have neighbors) and user-facing SVIs (hosts aren't OSPF routers).
 
 **Rule for distribution switches:**
@@ -128,7 +107,7 @@ router ospf 1
 
 ### Section 3 — OSPF Network Type Point-to-Point
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > On broadcast links (Ethernet), OSPF elects a **DR** (Designated Router) and **BDR** to reduce OSPF traffic. On a direct link between two switches, DR/BDR election is unnecessary overhead. `network type point-to-point` skips the election entirely.
 
 ```
@@ -147,14 +126,14 @@ interface Port-channel1
  exit
 ```
 
-> [!warning] Exam Flag 🎯
+> [!WARNING] Exam Flag 🎯
 > On a point-to-point network type, OSPF adjacency goes directly to **Full** state without DR/BDR election. On a broadcast link without `point-to-point`, the state progression is: Down → Init → 2-Way → Exstart → Exchange → Loading → **Full** (only with DR/BDR). Using `point-to-point` on direct links speeds up convergence.
 
 ---
 
 ### Section 4 — Default Routes on R1 (Primary + Floating)
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > R1 has two ISP connections. The **primary** static default route (AD=1) handles normal traffic. The **floating static** (AD=2) is a backup — its higher AD means it's only installed in the routing table when the primary disappears.
 
 **Administrative Distance (AD):**
@@ -186,7 +165,7 @@ ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 203.0.113.5 2
 - **Recursive** (`ip route 0.0.0.0 0.0.0.0 203.0.113.1`) — R1 must look up `203.0.113.1` to find the exit interface. If ISP A's link goes down, the recursive lookup fails → route disappears → floating static activates. ✅
 - **Fully-specified** (`ip route ... GigabitEthernet0/0/1 203.0.113.5 2`) — always in the table as long as the interface is up. Used for the floating backup so it stays ready.
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - Floating static AD must be **higher** than the primary route's AD (1 for static; 110 for OSPF)
 > - `default-information originate` injects a Type 5 LSA (external) into OSPF — only works if R1 has a default route in its routing table
 > - `default-information originate always` injects the default route even if R1 has no default route — useful for testing but risky in production
@@ -195,7 +174,7 @@ ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 203.0.113.5 2
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!example] R1 — Complete Part 5 Configuration
+> [!TIP] R1 — Complete Part 5 Configuration
 
 ```
 ! === R1 — OSPF + Static Routes ===
@@ -217,7 +196,7 @@ router ospf 1
 write memory
 ```
 
-> [!example] DSW-A1 — Complete Part 5 Configuration
+> [!TIP] DSW-A1 — Complete Part 5 Configuration
 
 ```
 ! === DSW-A1 — OSPF ===
@@ -266,7 +245,7 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!warning] Watch Out
+> [!WARNING] Watch Out
 > - **`network` command wildcard wrong** — `0.0.0.0` wildcard matches exactly one IP (/32); using `0.0.0.255` would match the whole /24 (may activate unwanted interfaces)
 > - **Missing `passive-interface`** — OSPF sends Hellos on host-facing ports; hosts aren't OSPF routers → Hellos waste bandwidth and confuse debugging
 > - **`default-information originate` with no default route** — without `always` keyword, R1 won't inject the default if it doesn't have one; verify with `show ip route 0.0.0.0`

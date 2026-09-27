@@ -1,27 +1,6 @@
----
-title: "P07 — Security (ACLs, Port Security, DHCP Snooping, DAI)"
-created: 2025-01-01
-updated: 2026-09-21
-tags:
-  - ccna
-  - netbridge
-  - networking
-  - acl
-  - port-security
-  - dhcp-snooping
-  - dai
-  - security
-  - extended-acl
-part: 7
-topic: Security
-status: live-verified
-lab: CCNA Mega Lab
-source: CCNA_Mega_Lab_Step_By_Step_Guide.md
----
-
 # P07 — Security (ACLs, Port Security, DHCP Snooping, DAI)
 
-> [!info] Part Summary
+> [!NOTE] Part Summary
 > **Topic:** Restrict inter-office traffic with an extended ACL, protect access ports with Port Security, and deploy DHCP Snooping + Dynamic ARP Inspection to prevent network attacks
 > **NetBridge Scenario:** The network is functional but open — any PC in Office A can freely access Office B's servers, and nothing stops a rogue DHCP server or ARP poisoning attack. Part 7 locks this down: ACLs control inter-office traffic, Port Security limits which MACs can connect, and DHCP Snooping + DAI protect the switching fabric from common L2 attacks.
 > **Key Concepts:** Extended ACLs, ACL placement, Port Security (sticky MAC), DHCP Snooping, DAI, trust ports
@@ -31,7 +10,7 @@ source: CCNA_Mega_Lab_Step_By_Step_Guide.md
 
 ## 🗺️ Big Picture
 
-> [!tip] Mental Model
+> [!TIP] Mental Model
 > Think of Part 7 as the building's security system: ACLs are the access control policy (who can go where), Port Security is the door badge reader (only known MACs get in), DHCP Snooping is the fake-key detector (block rogue DHCP servers), and DAI is the identity check (block ARP spoofing).
 
 ```
@@ -206,7 +185,7 @@ DAI:
 
 ### Section 1 — Extended ACL: Inter-Office Traffic Control
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **Extended ACLs** filter on source IP, destination IP, and protocol/port. The cardinal rule: place extended ACLs **as close to the source as possible** — this blocks unwanted traffic early, saving bandwidth on transit links.
 
 **Policy:**
@@ -242,7 +221,7 @@ Extended ACL → as close to SOURCE as possible (saves bandwidth on transit link
 Standard ACL → as close to DESTINATION as possible (standard ACLs only match source IP)
 ```
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - Extended ACL: filter by src IP + dst IP + protocol/port
 > - Standard ACL: filter by src IP only
 > - Implicit deny at end: if no `permit ip any any` at the end → all other traffic blocked!
@@ -253,7 +232,7 @@ Standard ACL → as close to DESTINATION as possible (standard ACLs only match s
 
 ### Section 2 — Port Security
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **Port Security** limits which MAC addresses can communicate on a switchport. **Sticky learning** auto-populates the allowed MAC list and saves it to the running-config. Violation mode `restrict` logs and drops unauthorized traffic without shutting the port.
 
 ```
@@ -286,7 +265,7 @@ interface FastEthernet0/4
 | `restrict` | Drop bad frames + log + increment counter | Still up |
 | `shutdown` | Err-disable the port | Err-disabled (requires manual recovery) |
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - Default violation mode is `shutdown` — changes to `restrict` explicitly
 > - Sticky MACs are saved to running-config (`write memory` to persist)
 > - `show port-security interface Fa0/3` shows learned MACs and violation counts
@@ -296,7 +275,7 @@ interface FastEthernet0/4
 
 ### Section 3 — DHCP Snooping
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **DHCP Snooping** inspects DHCP messages and builds a **binding table** (MAC → IP → port → VLAN). It blocks DHCP offers from untrusted ports (only uplinks toward the real DHCP server are trusted), preventing rogue DHCP servers from assigning bad IPs.
 
 ```
@@ -331,10 +310,10 @@ interface GigabitEthernet0/3
  exit
 ```
 
-> [!warning] Critical Gotcha — option 82
+> [!WARNING] Critical Gotcha — option 82
 > `no ip dhcp snooping information option` **must** be configured. Option 82 (DHCP relay agent information) is inserted by snooping-enabled switches into DHCP packets. When these packets reach R1 (which isn't expecting option 82), it silently drops them. The result: DHCP requests disappear without any error message. Always disable option 82 insertion.
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - DHCP Snooping builds the **binding table** used by DAI (Part 7.4)
 > - Trusted ports: only uplinks toward the real DHCP server — never host-facing ports
 > - `show ip dhcp snooping binding` — verify binding table populated after DHCP works
@@ -344,7 +323,7 @@ interface GigabitEthernet0/3
 
 ### Section 4 — Dynamic ARP Inspection (DAI)
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **DAI** validates ARP packets against the DHCP Snooping binding table — if a device claims an IP/MAC combination not in the table, the ARP packet is dropped. This blocks **ARP poisoning** (a man-in-the-middle attack where an attacker sends fake ARP replies to redirect traffic through their device).
 
 ```
@@ -371,7 +350,7 @@ interface GigabitEthernet0/2
 - **src-mac** — ARP sender MAC matches the Ethernet header source
 - **ip** — ARP request/reply doesn't contain 0.0.0.0, 255.255.255.255, or other invalid IPs
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - DAI depends on the DHCP Snooping binding table — configure DHCP Snooping first
 > - For static IPs (servers, switches), add manual **ARP ACL entries** so DAI doesn't block them (they won't appear in the DHCP binding table since they don't use DHCP)
 > - `show ip arp inspection` — shows forwarded/dropped ARP counts per VLAN
@@ -381,7 +360,7 @@ interface GigabitEthernet0/2
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!example] DSW-A1 — Extended ACL Configuration
+> [!TIP] DSW-A1 — Extended ACL Configuration
 
 ```
 ! === DSW-A1 — Extended ACL (also configure identically on DSW-A2) ===
@@ -399,7 +378,7 @@ interface Vlan10
 write memory
 ```
 
-> [!example] ASW-A1 — Port Security + DHCP Snooping + DAI
+> [!TIP] ASW-A1 — Port Security + DHCP Snooping + DAI
 
 ```
 ! === ASW-A1 — Complete Part 7 Configuration ===
@@ -461,7 +440,7 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!warning] Watch Out
+> [!WARNING] Watch Out
 > - **ACL only on one distribution switch** — if HSRP fails over to the other switch, traffic bypasses the ACL; apply on both DSW-A1 and DSW-A2
 > - **Missing `permit ip any any`** — ACL has implicit deny at end; without this, all non-ICMP traffic (HTTP, SSH, etc.) is blocked even within the same office
 > - **`no ip dhcp snooping information option` forgotten** — DHCP silently breaks; this is the #1 DHCP Snooping gotcha

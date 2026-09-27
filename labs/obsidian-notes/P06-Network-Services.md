@@ -1,29 +1,6 @@
----
-title: "P06 — Network Services (DHCP, DNS, NTP, SNMP, SSH, NAT)"
-created: 2025-01-01
-updated: 2025-01-01
-tags:
-  - ccna
-  - netbridge
-  - networking
-  - dhcp
-  - nat
-  - ssh
-  - ntp
-  - snmp
-  - syslog
-  - dns
-  - ftp
-part: 6
-topic: Network Services
-status: reviewed
-lab: CCNA Mega Lab
-source: CCNA_Mega_Lab_Step_By_Step_Guide.md
----
-
 # P06 — Network Services (DHCP, DNS, NTP, SNMP, SSH, NAT)
 
-> [!info] Part Summary
+> [!NOTE] Part Summary
 > **Topic:** Configure all enterprise network services — DHCP, DNS, NTP, SNMP/Syslog, FTP-based IOS upgrade, SSH hardening, and NAT for internet access
 > **NetBridge Scenario:** The physical and logical network is up. Now it needs services — hosts need automatic IP assignment (DHCP), time synchronisation (NTP), management monitoring (SNMP/Syslog), secure remote access (SSH), and internet connectivity (NAT). This is the longest part of the lab.
 > **Key Concepts:** DHCP pools, excluded addresses, relay (`ip helper-address`), NTP authentication, SNMP community strings, SSH v2, ACL + VTY, static NAT, dynamic PAT, NAT inside/outside
@@ -33,7 +10,7 @@ source: CCNA_Mega_Lab_Step_By_Step_Guide.md
 
 ## 🗺️ Big Picture
 
-> [!tip] Mental Model
+> [!TIP] Mental Model
 > Part 6 is the "services layer" — all the things that make a network actually usable. Each service follows the same shape: configure the server (R1 or SRV1), configure the clients (switches/routers point to the server), and verify end-to-end.
 
 ```
@@ -51,7 +28,7 @@ NAT:     Static NAT for SRV1 (fixed public IP) + PAT for all others
 
 ### Section 1 — DHCP on R1
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > R1 acts as the DHCP server for all subnets. **Excluded addresses** reserve IPs for network devices (routers, switches, SVIs). Pools define the network, gateway, DNS, and domain for each subnet.
 
 ```
@@ -106,7 +83,7 @@ ip dhcp pool VLAN99_MGMT_A
 
 ### Section 2 — DHCP Relay (ip helper-address)
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > DHCP uses broadcast — broadcasts don't cross router boundaries. `ip helper-address` on a distribution-switch SVI converts DHCP broadcasts into **unicast** packets directed at R1's loopback (`10.0.0.76`), allowing R1 to serve DHCP requests from any VLAN.
 
 ```
@@ -130,7 +107,7 @@ interface Vlan99
 ! Apply the same on DSW-A2, DSW-B1, DSW-B2 for their respective VLANs
 ```
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - `ip helper-address` goes on the **client-side SVI** (where hosts send DHCP requests), not on R1
 > - Using R1's **loopback** IP (not a physical interface IP) ensures relay works even if one path to R1 fails — loopback is always reachable via any OSPF path
 > - Verify with `show ip dhcp binding` on R1 — assigned leases appear here
@@ -139,7 +116,7 @@ interface Vlan99
 
 ### Section 3 — NTP
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **NTP** (Network Time Protocol) synchronises clocks. R1 is the **authoritative time source** with an authentication key — every device points to R1 and validates the key before accepting time updates.
 
 ```
@@ -157,14 +134,14 @@ ntp trusted-key 1
 ntp server 10.0.0.76 key 1    ! point to R1's loopback with key validation
 ```
 
-> [!warning] Exam Flag 🎯
+> [!WARNING] Exam Flag 🎯
 > NTP authentication key must match exactly on both server and clients — including the key number (1), algorithm (md5), and passphrase. Mismatch = clients reject R1's time updates silently.
 
 ---
 
 ### Section 4 — SNMP and Syslog
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **SNMP** lets a management station (SRV1) poll device statistics. **Syslog** sends log messages to SRV1 for centralised monitoring. Both are configured on every network device.
 
 ```
@@ -192,14 +169,14 @@ logging buffered 8192                ! buffer 8 KB of logs locally too
 | 6 | Informational | Informational |
 | 7 | Debugging | All messages |
 
-> [!warning] Exam Flag 🎯
+> [!WARNING] Exam Flag 🎯
 > `logging trap debugging` sends severity 7 and **all levels below it** (0–7) — everything. In production, use level 6 (informational) or lower to avoid overwhelming the syslog server.
 
 ---
 
 ### Section 5 — SSH Hardening
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > SSH v2 with RSA 4096-bit keys, restricted by ACL to only Office A's PC subnet, applied to VTY lines with `login local` and `transport input ssh`.
 
 ```
@@ -230,7 +207,7 @@ line vty 0 15
  exit
 ```
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - `transport input ssh` disables Telnet on VTY — Telnet sends passwords in plaintext
 > - `ip ssh version 2` without `ip domain-name` and `crypto key generate rsa` first → SSH won't work
 > - ACL for SSH: applied with `access-class <acl> in` (not `ip access-group`) — `access-class` is specifically for VTY/Console lines
@@ -240,7 +217,7 @@ line vty 0 15
 
 ### Section 6 — FTP-Based IOS Upgrade on R1
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > R1's IOS is upgraded by downloading a new image from SRV1 via FTP, setting the boot system variable, saving, and reloading. This is a slow process — the file transfer can take several minutes.
 
 ```
@@ -276,7 +253,7 @@ delete flash:c2900-universalk9-mz.SPA.151-4.M4.bin
 
 ### Section 7 — NAT on R1
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > **NAT** translates private (RFC 1918) addresses to public addresses for internet access. Two types configured: **static NAT** gives SRV1 a fixed public IP; **dynamic PAT** shares one public IP pool across all other hosts.
 
 ```
@@ -343,7 +320,7 @@ interface range FastEthernet0/1 - 10
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!example] R1 — Complete Part 6 Configuration (condensed)
+> [!TIP] R1 — Complete Part 6 Configuration (condensed)
 
 ```
 ! === R1 — All Network Services ===
@@ -435,7 +412,7 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!warning] Watch Out
+> [!WARNING] Watch Out
 > - **`ip helper-address` on wrong interface** — must be on the SVI that DHCP clients are in, not on R1's interface
 > - **`option 43` missing from management pool** — LWAPs won't find the WLC; they'll be stuck in discovery phase
 > - **NTP key mismatch** — check key number, algorithm, and passphrase are identical on all devices; NTP will appear to work but clock won't sync

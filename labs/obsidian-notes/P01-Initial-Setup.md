@@ -1,25 +1,6 @@
----
-title: "P01 — Initial Setup & Device Hardening"
-created: 2025-01-01
-updated: 2025-01-01
-tags:
-  - ccna
-  - netbridge
-  - networking
-  - hardening
-  - hostname
-  - enable-secret
-  - console
-part: 1
-topic: Initial Setup & Device Hardening
-status: reviewed
-lab: CCNA Mega Lab
-source: CCNA_Mega_Lab_Step_By_Step_Guide.md
----
-
 # P01 — Initial Setup & Device Hardening
 
-> [!info] Part Summary
+> [!NOTE] Part Summary
 > **Topic:** Baseline security hardening on every router and switch before any network config
 > **NetBridge Scenario:** Before touching a single VLAN or route, NetBridge's security policy requires every device to be named, password-protected, and locked down. This is the foundation every other part builds on.
 > **Key Concepts:** `hostname`, `enable secret` (type 9 vs type 5), local user accounts, console line security, `write memory`
@@ -29,7 +10,7 @@ source: CCNA_Mega_Lab_Step_By_Step_Guide.md
 
 ## 🗺️ Big Picture
 
-> [!tip] Mental Model
+> [!TIP] Mental Model
 > Part 1 is pure hygiene — no routing, no VLANs, just making sure every device has an identity and a locked front door. Do this wrong and the grader can't even verify the hostname.
 
 ```
@@ -41,7 +22,7 @@ Every device in the topology:
   write memory → saves to startup-config (grader reads THIS, not running-config)
 ```
 
-> [!warning] The One Rule That Matters Everywhere
+> [!WARNING] The One Rule That Matters Everywhere
 > **`write memory` after every device.** The grader only reads **startup-config** (what loads on boot). A perfect running-config that hasn't been saved scores zero.
 
 ---
@@ -50,7 +31,7 @@ Every device in the topology:
 
 ### Section 1 — Hostname
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > The hostname must match the topology diagram **exactly** — case-sensitive. The grader is literal; `dsw-a1` and `DSW-A1` are treated as different.
 
 ```
@@ -63,7 +44,7 @@ hostname DSW-A1
 
 ### Section 2 — Enable Secret (Privileged Mode Password)
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > `enable secret` hashes the password before storing it in the config — unlike `enable password` which stores it in plaintext (or weak Type 7 reversible encoding). Use **type 9** (SCRYPT) if the platform supports it.
 
 ```
@@ -82,14 +63,14 @@ enable secret class
 | Type 8 | PBKDF2-SHA256 | Strong |
 | **Type 9** | **SCRYPT** | **Strongest — use this** |
 
-> [!warning] Exam Flag
+> [!WARNING] Exam Flag
 > `enable secret` always wins over `enable password` if both are configured. In the config you'll see `enable secret 9 $9$...` for SCRYPT or `enable secret 5 $1$...` for MD5.
 
 ---
 
 ### Section 3 — Local User Account
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > A local user account provides credential-based login for console (and later SSH) access. The username and password must match what the grader expects — use the lab's specified credentials.
 
 ```
@@ -102,7 +83,7 @@ username cisco privilege 15 algorithm-type scrypt secret CCNA
 
 ### Section 4 — Console Line Hardening
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > By default the console line has no password — anyone with physical access gets in. `login local` forces credential verification against the local user database.
 
 ```
@@ -118,7 +99,7 @@ line console 0
 
 ### Section 5 — Save Configuration
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > Three equivalent ways to save — all write running-config to startup-config (NVRAM). Pick one, use it consistently.
 
 ```
@@ -132,14 +113,14 @@ write memory
 do write
 ```
 
-> [!warning] Never Skip This
+> [!WARNING] Never Skip This
 > The grader reads startup-config only. If you configure 100 things and forget to save, you score 0. Build `write memory` into muscle memory — type it after every device, every part.
 
 ---
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!example] Part 1 — Repeat on Every Device (substituting the correct hostname)
+> [!TIP] Part 1 — Repeat on Every Device (substituting the correct hostname)
 
 ```
 ! === INITIAL SETUP — apply to EVERY device ===
@@ -193,7 +174,7 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!warning] Watch Out
+> [!WARNING] Watch Out
 > - **Wrong hostname case** — `dsw-a1` fails if grader expects `DSW-A1`; match the topology diagram exactly
 > - **`enable password` instead of `enable secret`** — stores password in plaintext or weak Type 7; always use `enable secret`
 > - **Forgetting `write memory`** — most common single cause of lost points; make it a reflex after every device

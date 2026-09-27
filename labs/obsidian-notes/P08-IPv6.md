@@ -1,26 +1,6 @@
----
-title: "P08 — IPv6"
-created: 2025-01-01
-updated: 2026-09-21
-tags:
-  - ccna
-  - netbridge
-  - networking
-  - ipv6
-  - eui-64
-  - floating-static-ipv6
-  - link-local
-  - unicast-routing
-part: 8
-topic: IPv6
-status: live-verified
-lab: CCNA Mega Lab
-source: CCNA_Mega_Lab_Step_By_Step_Guide.md
----
-
 # P08 — IPv6
 
-> [!info] Part Summary
+> [!NOTE] Part Summary
 > **Topic:** Enable IPv6 routing on R1, CSW1, and CSW2 using three different address assignment methods, and configure dual IPv6 default routes mirroring the IPv4 ISP failover setup
 > **NetBridge Scenario:** The client's infrastructure needs to support IPv6 alongside IPv4 (dual-stack). Part 8 is a light touch — IPv6 is only enabled on the core layer (R1, CSW1, CSW2) for this lab, demonstrating three different ways to assign IPv6 addresses.
 > **Key Concepts:** `ipv6 unicast-routing`, global unicast address, EUI-64, link-local only (`ipv6 enable`), IPv6 floating static route, AD
@@ -30,7 +10,7 @@ source: CCNA_Mega_Lab_Step_By_Step_Guide.md
 
 ## 🗺️ Big Picture
 
-> [!tip] Mental Model
+> [!TIP] Mental Model
 > IPv6 addresses are 128-bit, written in hexadecimal, split into 8 groups of 4 hex digits (e.g. `2001:0db8:0001:0000:0000:0000:0000:0001`). Three ways to configure an address on an interface — full manual, EUI-64 (auto-generate host portion from MAC), and link-local only.
 
 ```
@@ -143,7 +123,7 @@ Three addressing methods demonstrated:
 
 ### Section 1 — Enable IPv6 Routing
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > `ipv6 unicast-routing` is the IPv6 equivalent of `ip routing` — it must be enabled on every device that needs to route IPv6 traffic (not just have IPv6 addresses).
 
 ```
@@ -151,14 +131,14 @@ Three addressing methods demonstrated:
 ipv6 unicast-routing
 ```
 
-> [!warning] Exam Flag 🎯
+> [!WARNING] Exam Flag 🎯
 > Without `ipv6 unicast-routing`, a device with IPv6 addresses will NOT forward IPv6 traffic — it will only process packets destined for itself. This is the most commonly forgotten command in IPv6 configurations.
 
 ---
 
 ### Section 2 — IPv6 Address Types
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > Three address types used in this lab, all within the interface configuration.
 
 **Global Unicast Address (GUA)** — the IPv6 equivalent of a public IP:
@@ -186,7 +166,7 @@ Full address: 2001:db8:0:2:021A:2BFF:FE3C:4D5E/64
 
 ### Section 3 — Three Addressing Methods
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > Each interface on R1, CSW1, and CSW2 uses a different method — demonstrating all three in the same lab.
 
 **Method 1 — Full manual (R1 LAN interface):**
@@ -228,7 +208,7 @@ interface Port-channel1
 
 ### Section 4 — IPv6 Default Routes (Dual ISP Failover)
 
-> [!note] Key Concept
+> [!NOTE] Key Concept
 > Mirrors the IPv4 floating static setup from Part 5 — primary route via ISP A (lower AD), floating backup via ISP B (higher AD).
 
 ```
@@ -251,7 +231,7 @@ ipv6 route ::/0 GigabitEthernet0/0/1 2001:db8:b:1::1 2
 | Routing enable | `ip routing` | `ipv6 unicast-routing` |
 | Address types | Class A/B/C/D/E | GUA, Link-local, Multicast, Anycast |
 
-> [!warning] Exam Flags 🎯
+> [!WARNING] Exam Flags 🎯
 > - `::/0` is the IPv6 default route (all zeros, prefix length 0 — matches everything)
 > - IPv6 floating static: same AD concept as IPv4 — higher AD = lower preference = backup
 > - `show ipv6 route` — verify primary and floating routes; floating shows only when primary is down
@@ -260,7 +240,7 @@ ipv6 route ::/0 GigabitEthernet0/0/1 2001:db8:b:1::1 2
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!example] R1 — Complete Part 8 Configuration
+> [!TIP] R1 — Complete Part 8 Configuration
 
 ```
 ! === R1 — IPv6 ===
@@ -298,7 +278,7 @@ ipv6 route ::/0 GigabitEthernet0/0/1 2001:db8:b:1::1 2  ! floating via ISP B
 write memory
 ```
 
-> [!example] CSW1 — Complete Part 8 Configuration
+> [!TIP] CSW1 — Complete Part 8 Configuration
 
 ```
 ! === CSW1 — IPv6 ===
@@ -342,7 +322,7 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!warning] Watch Out
+> [!WARNING] Watch Out
 > - **Forgetting `ipv6 unicast-routing`** — device won't route IPv6; same trap as forgetting `ip routing` on switches
 > - **EUI-64 bit-flip confusion** — the 7th bit of the first octet is inverted; MAC `00:` becomes `02:` in the EUI-64 address (universal → locally administered bit)
 > - **`::/0` vs `0.0.0.0/0`** — the IPv6 default route is `::/0`; `0.0.0.0/0` is IPv4 only; don't mix them
