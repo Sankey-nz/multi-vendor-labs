@@ -118,6 +118,26 @@ do write
 
 ---
 
+### Section 6 — Discovery Protocols (CDP & LLDP)
+
+> [!NOTE] Key Concept
+> Discovery protocols allow devices to share information (hostname, IP, capabilities) with neighbors. **CDP** is Cisco proprietary; **LLDP** is the industry standard (IEEE 802.1AB) used for multi-vendor environments.
+
+```
+! Enable LLDP globally (standard)
+lldp run
+
+! Disable CDP on specific untrusted interfaces (Security best practice)
+interface GigabitEthernet0/0
+  no cdp enable
+```
+
+**Why it matters:** In a real network, you use these to map the topology without having to log into every device. However, leaving CDP/LLDP active on WAN interfaces is a security risk (information leakage).
+
+---
+
+
+
 ## 🖥️ NetBridge Applied — Full Config Block
 
 > [!TIP] Part 1 — Repeat on Every Device (substituting the correct hostname)
@@ -141,7 +161,11 @@ line console 0
  exec-timeout 30 0
  exit
 
-! Step 5: SAVE — do this before moving to any other device
+! Step 5: Discovery Protocols
+lldp run
+! (Note: cdp is on by default, disable on WAN interfaces manually)
+
+! Step 6: SAVE — do this before moving to any other device
 write memory
 ```
 
@@ -169,6 +193,8 @@ write memory
 | `show running-config \| include username` | `username jeremy privilege 15 secret 9 ...` |
 | `show running-config \| section line con` | `login local` present |
 | `show startup-config \| include hostname` | Confirms `write memory` was done — if this differs from running-config, you forgot to save |
+| `show cdp neighbors` | Confirms Cisco neighbor visibility |
+| `show lldp neighbors` | Confirms multi-vendor neighbor visibility |
 
 ---
 
@@ -196,6 +222,8 @@ write memory
 | `copy running-config startup-config` | Identical to `write memory` | Three equivalent forms — all do the same thing |
 | startup-config | Config loaded on boot (NVRAM) | What the grader checks |
 | running-config | Active config in RAM | Lost on reboot if not saved |
+| `cdp` | Cisco discovery protocol | Default on; disable on WAN interfaces for security |
+| `lldp` | Industry standard discovery | Must be enabled manually with `lldp run` |
 
 ---
 
