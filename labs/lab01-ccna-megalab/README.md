@@ -23,17 +23,17 @@ SankeyLab required a dual-site enterprise network built from scratch in PNetLab 
 
 ## Requirements vs Implemented
 
-| Part | Topic | Required | Status |
-|------|-------|----------|--------|
-| 1 | Initial Device Setup | Hostnames, SSH, banners, local auth, CDP/LLDP | ✅ Implemented |
-| 2 | VLANs & L2 EtherChannel | VLAN DB, VTP, 802.1Q trunking, PAgP EtherChannel | ✅ Implemented |
-| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ✅ Implemented |
-| 4 | Spanning Tree | Rapid PVST+, STP root priorities, PortFast, BPDU Guard | ✅ Implemented |
-| 5 | Routing | OSPFv2 Area 0, passive interfaces, default-information originate | ✅ Implemented |
-| 6 | Network Services | DHCP, DNS, NTP (auth), SNMP, Syslog, FTP, PAT | ✅ Implemented |
-| 7 | Security | Extended ACLs, port security, DHCP snooping, DAI | ✅ Implemented |
-| 8 | IPv6 | Dual-stack, static IPv6 routes, IPv6 ACL | ✅ Implemented |
-| 9 | Wireless | Cisco vWLC, LWAP join, WPA2-PSK WLAN | ✅ Implemented |
+| Part | Topic | Required | Status | Guide |
+|------|-------|----------|--------|-------|
+| 1 | Initial Device Setup | Hostnames, SSH, banners, local auth, CDP/LLDP | ✅ Implemented | [P01](../obsidian-notes/P01-Initial-Setup.md) |
+| 2 | VLANs & L2 EtherChannel | VLAN DB, VTP, 802.1Q trunking, PAgP EtherChannel | ✅ Implemented | [P02](../obsidian-notes/P02-VLANs-and-L2-EtherChannel.md) |
+| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ✅ Implemented | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
+| 4 | Spanning Tree | Rapid PVST+, STP root priorities, PortFast, BPDU Guard | ✅ Implemented | [P04](../obsidian-notes/P04-Rapid-Spanning-Tree.md) |
+| 5 | Routing | OSPFv2 Area 0, passive interfaces, default-information originate | ✅ Implemented | [P05](../obsidian-notes/P05-OSPF-and-Static-Routing.md) |
+| 6 | Network Services | DHCP, DNS, NTP (auth), SNMP, Syslog, FTP, PAT | ✅ Implemented | [P06](../obsidian-notes/P06-Network-Services.md) |
+| 7 | Security | Extended ACLs, port security, DHCP snooping, DAI | ✅ Implemented | [P07](../obsidian-notes/P07-Security.md) |
+| 8 | IPv6 | Dual-stack, static IPv6 routes, IPv6 ACL | ✅ Implemented | [P08](../obsidian-notes/P08-IPv6.md) |
+| 9 | Wireless | Cisco vWLC, LWAP join, WPA2-PSK WLAN | ✅ Implemented | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
 
 ---
 
