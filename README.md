@@ -16,7 +16,7 @@ This repository contains hands-on network engineering labs built in PNetLab usin
 
 | Lab | Platform | Status | Description |
 |-----|----------|--------|-------------|
-| [lab01-ccna-megalab](./lab01-ccna-megalab) | PNetLab + Cisco IOL/IOSv | ✅ Complete | Dual-site enterprise network covering all CCNA exam topics |
+| [lab01-ccna-megalab](./labs/lab01-ccna-megalab) | PNetLab + Cisco IOL/IOSv | ✅ Complete | Dual-site enterprise network covering all CCNA exam topics |
 | lab02 *(coming soon)* | — | 🔜 Planned | — |
 
 ---
@@ -34,5 +34,5 @@ This repository contains hands-on network engineering labs built in PNetLab usin
 ## Author
 
 **Sankey Silva**
-- LinkedIn: [linkedin.com/in/your-profile](https://linkedin.com/in/your-profile) *(update link)*
+- LinkedIn: [linkedin.com/in/sankey-silva](https://www.linkedin.com/in/sankey-silva/)
 - GitHub: [github.com/Sankey](https://github.com/Sankey)
