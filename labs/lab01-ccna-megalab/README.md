@@ -41,6 +41,7 @@ SankeyLab required a dual-site enterprise network built from scratch in PNetLab 
 
 Deviations from the original lab design, confirmed against harvested running configs (September 2026):
 
+- **WAN Connectivity:** R1 connects directly to ISP-B via Gi0/3 (DHCP), with `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp` as the default route.
 - **CSW1/CSW2 are pure L3 routed core:** No SVIs, no HSRP on either core switch. All VLAN SVIs and HSRP virtual IPs live on the DSW distribution layer.
 - **DSW-A2 SVIs shutdown:** Vlan10, Vlan20, and Vlan40 interfaces are administratively shutdown on DSW-A2. DSW-A1 carries all active SVI traffic for Office A. Only Vlan99 (management) is active on DSW-A2.
 - **WLC1 management IP:** Live management interface is `10.0.0.7/28` on VLAN 99, connected to ASW-A1 — not `192.168.30.20/24` on VLAN 60 as originally documented.
