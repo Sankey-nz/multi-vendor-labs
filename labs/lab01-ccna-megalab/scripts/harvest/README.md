@@ -27,3 +27,5 @@ python labs/lab01-ccna-megalab/scripts/harvest/harvest_aswb_v2.py
 ## Requirements
 - `netmiko` — install with `pip install netmiko`
 - Lab devices reachable on the management network (see `addressing-table.md`)
+
+Netmiko `4.7.0` was used successfully from the Kali VM for the documented collection. The repository does not currently pin Netmiko in a `requirements.txt`; install it in the environment where the scripts will run.

@@ -20,8 +20,21 @@
               "icon": "lucide-file",
               "title": "P01-Initial-Setup"
             }
+          },
+          {
+            "id": "581954656bc378d5",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.13.7"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.13.7"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -188,7 +201,7 @@
       "bases:Create new base": false
     }
   },
-  "active": "14b8754d9ba53549",
+  "active": "581954656bc378d5",
   "lastOpenFiles": [
     "P02-VLANs-and-L2-EtherChannel.md",
     "P03-IP-Addressing-L3-EtherChannel-HSRP.md",

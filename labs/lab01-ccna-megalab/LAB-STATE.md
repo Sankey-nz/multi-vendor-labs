@@ -253,3 +253,86 @@ All 13 devices now have configs collected in `labs/lab01-ccna-megalab/configs/`.
 - Obsidian notes P07/P08/P09 updated with live evidence (2026-09-21)
 
 **Prepared by:** Kiro
+
+## PNetLab Topology Visual Update — 2026-10-04
+
+Updated the live lab file `/opt/unetlab/labs/multivendorlabs.unl` to make the two office zones easier to distinguish:
+
+- Office A panel: pale blue (`#E3F2FD`); title pill: blue (`#1565C0`).
+- Office B panel: pale green (`#E8F5E9`); title pill: green (`#2E7D32`).
+- Office title text increased from 24px to 26px.
+- Office A title box height increased to 38px to fit the larger text.
+
+Only the four corresponding text-object style payloads were changed. Node positions, interface/link definitions, device configurations, and runtime state were not modified. The original lab file was backed up on the PNetLab host at:
+
+```text
+/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2225
+```
+
+The backup SHA-256 matches the pre-edit lab file. Refresh the PNetLab topology page to see the updated colors and title sizing. Signed: Copilot.
+
+### Network Layer Labels — 2026-10-04
+
+Added visual labels to the live topology canvas:
+
+- `CORE LAYER` above the CSW1/CSW2 core.
+- `DISTRIBUTION LAYER` above each office's DSW pair.
+- `ACCESS LAYER` beside each office's access-switch group.
+
+The labels use consistent role colors (blue for core, teal for distribution, slate for access) with white text. The live lab was backed up before editing at `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2231`. The XML parsed successfully after the update; node, network, interface/link data and all pre-existing annotations are unchanged. Refresh the PNetLab page to view. Signed: Copilot.
+
+### Topology Legend and EtherChannel Labels — 2026-10-04
+
+Added a compact legend in the open upper-right canvas area:
+
+- Blue = core; teal = distribution; slate = access/WAN labels.
+- Red oval = physical member links in an EtherChannel bundle.
+- Office A uses PAgP (Cisco), `desirable/desirable`; Office B uses LACP (IEEE 802.3ad), `active/active`.
+- Both DSW pairs bundle `e0/0 + e0/1` into `Port-channel1`.
+
+The existing PAgP and LACP pills now show the negotiation modes and member ports. Live device configs are in `configs/DSW-A1.txt`, `DSW-A2.txt`, `DSW-B1.txt`, and `DSW-B2.txt`; the topology guide is `../obsidian-notes/P02-VLANs-and-L2-EtherChannel.md`.
+
+Before editing the live `.unl`, created `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2238` and verified its SHA-256 matched the exact pre-edit file. The XML parses after the edit; all node, network, and link definitions and unrelated annotations are unchanged. Refresh PNetLab to see the legend and protocol callouts. Signed: Copilot.
+
+### EtherChannel Callout and Routed-Subnet Label Cleanup — 2026-10-04
+
+Following review that the PAgP/LACP callouts obscured links, both were reduced to compact two-line pills above their respective distribution pairs:
+
+```text
+PAgP desirable/desirable | Po1: e0/0 + e0/1
+LACP active/active (IEEE) | Po1: e0/0 + e0/1
+```
+
+The eight core-to-distribution `/30` labels were normalized to 132 x 26 px, 15 px text, and staggered across two rows. Their text remains attached to the corresponding subnet labels; bounding-box checks confirm no label-to-label overlap. The three R1/core `/30` labels were left unchanged.
+
+The live lab was backed up before editing at `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2242`; the backup checksum matched the source. Post-edit XML parses successfully, and all nodes, network definitions, links, and unrelated annotations are unchanged. Refresh the canvas to view. Signed: Copilot.
+
+### Removed Redundant Layer Pills — 2026-10-04
+
+Removed the five repeated `CORE LAYER`, `DISTRIBUTION LAYER`, and `ACCESS LAYER` pills because the legend already explains the corresponding layer colors. Kept the legend, Office A/B headings, WAN EDGE label, PAgP/LACP callouts, and subnet labels.
+
+Backup before removal: `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2245` (SHA-256 verified against the pre-edit lab file). XML validation confirmed that exactly the five layer text objects were removed; all 20 nodes, 38 networks, and every other annotation remain unchanged. Refresh PNetLab to view. Signed: Copilot.
+
+### Final Label Simplification — 2026-10-04
+
+Removed the standalone `WAN EDGE` text pill. The WAN area remains visually identified by its blue background. Reduced the two EtherChannel annotations to name-only `PAgP` and `LACP` pills beside their red bundle markers; the legend retains the standards, modes, and color explanations. The legend line now identifies slate as the access-layer color only.
+
+Backup: `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2246` (pre-edit SHA-256 verified). XML validation confirms only the WAN pill and the three intended annotation payloads changed; all 20 nodes and 38 networks/links are preserved. Refresh PNetLab to see the final labels. Signed: Copilot.
+
+### Clear CSW1/DSW-B1 e1/1 Port Labels — 2026-10-04
+
+The `10.0.0.52/30` subnet label was covering the diagonal routed link between `CSW1 e1/1` and `DSW-B1 e1/1`. This was an annotation overlap, not a PNetLab rendering fault. Moved that label from `left=905, top=1095` to `left=810, top=1175`; the routed line is now approximately 87 px clear of the label's right edge at that height.
+
+Backup before edit: `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2249` (SHA-256 verified). Only the `10.0.0.52/30` text-object position changed; all nodes, interfaces, networks, links, and other annotations remain unchanged. Refresh the canvas to verify both e1/1 labels are visible. Signed: Copilot.
+
+### Office VLAN Summaries on Topology — 2026-10-04
+
+Extended the existing topology legend with compact, color-coded VLAN allocations for each site:
+
+- **Office A:** VLAN 10 users (`10.1.0.0/24`), VLAN 20 staff/voice (`10.2.0.0/24`), VLAN 40 Wi-Fi clients (`10.6.0.0/24`), and VLAN 99 network management (`10.0.0.0/28`).
+- **Office B:** VLAN 10 users (`10.3.0.0/24`), VLAN 20 staff (`10.4.0.0/24`), VLAN 30 servers/staff (`10.5.0.0/24`), and VLAN 99 network management (`10.0.0.16/28`).
+- Both sites note VLAN 999 for parking and VLAN 1000 as the unused native VLAN.
+
+The legend card was extended downward in the open upper-right canvas area to keep this site-specific detail together without covering office links or device labels. Backup before edit: `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2255` (SHA-256: `9d5e4a4541026bd7a698a6208d35d85d7eeca287141b67ab7fc207dc4704c0cc`). The lab XML parses successfully; the 20 nodes and 38 networks/links are unchanged. No VLAN configuration was modified. Refresh PNetLab to view the summary. Signed: Copilot.
+
+The updated live topology was captured as `topology/Screenshot 2026-10-04 23011400.png` and copied over the repository's `topology/topology.png` reference image. The supplied capture is 1693 x 1080 and includes the VLAN legend without the PNetLab footer controls. The prior `topology.png` was preserved outside the repository as `topology-before-vlan-summary-20261004.png` in the local temp directory. Signed: Copilot.

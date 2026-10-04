@@ -9,31 +9,37 @@
 
 ## Topology
 
-![Topology](topology/topology.png)
+![Logical and physical topology for the two-office SankeyLab scenario.](topology/topology.png)
 
-The lab simulates a dual-site enterprise network across Office A and Office B. Both sites share a common core (CSW1/CSW2) connected to an edge router (R1) with upstream WAN access. Each office has a redundant distribution layer (DSW pairs with HSRP) feeding three access switches and end hosts. Office A additionally hosts a Cisco vWLC for wireless. Office B hosts a Windows Server providing domain, DNS, DHCP and NTP services.
-
----
-
-## Scenario
-
-SankeyLab required a dual-site enterprise network built from scratch in PNetLab — no Packet Tracer shortcuts, real Cisco IOL and IOSv images throughout. The goal was to cover every major CCNA exam topic in a single connected, end-to-end topology rather than isolated practice labs. All 9 build parts were completed in sequence, from initial device hardening through to wireless LAN deployment and fault injection.
+The diagram shows the virtual lab topology across Office A and Office B. Both sites connect through a shared routed core (CSW1/CSW2) and edge router (R1). Each office has a distribution pair, access switches, and end hosts. Office A includes the Cisco vWLC; Office B includes WIN-SV1 for domain, DNS, NTP, and file services. DHCP is provided by R1 in the current live configuration.
 
 ---
 
-## Requirements vs Implemented
+## Business Problem and Engineering Request
 
-| Part | Topic | Required | Status | Guide |
+**Scenario:** SankeyLab is a fictional company operating from two offices. It needs reliable communication between sites, separate networks for users, staff/voice, servers, wireless clients, and network management, and access to shared services and the Internet. The design must include redundancy, controlled access, and a way to verify and troubleshoot failures.
+
+**Engineering request:** Plan the IPv4 subnets and VLANs; build the routed and switched topology; configure redundancy, routing, services, security, IPv6, and wireless; then verify end-to-end connectivity and diagnose injected faults. The nine study parts break this work into manageable stages rather than isolated protocol demonstrations.
+
+This is a virtual lab built with PNetLab and Cisco IOL/IOSv software images—not a physical hardware deployment. The images are not distributed in this repository. Configurations use Cisco IOS-style commands, while the live-state notes call out where the current virtual lab differs from the original design or from a fully validated production network.
+
+---
+
+## Build Requirements and Current Status
+
+The status column describes the recorded lab configuration, not a claim that every feature has been validated with production hardware. Known live-state limitations are called out below.
+
+| Part | Topic | Engineering task | Status | Guide |
 |------|-------|----------|--------|-------|
 | 1 | Initial Device Setup | Hostnames, SSH, banners, local auth, CDP/LLDP | ✅ Implemented | [P01](../obsidian-notes/P01-Initial-Setup.md) |
 | 2 | VLANs & L2 EtherChannel | VLAN DB, VTP, 802.1Q trunking, PAgP EtherChannel | ✅ Implemented | [P02](../obsidian-notes/P02-VLANs-and-L2-EtherChannel.md) |
-| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ✅ Implemented | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
+| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ⚠️ Configured; DSW-A2 user SVIs are shutdown in the recorded live state | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
 | 4 | Spanning Tree | Rapid PVST+, STP root priorities, PortFast, BPDU Guard | ✅ Implemented | [P04](../obsidian-notes/P04-Rapid-Spanning-Tree.md) |
 | 5 | Routing | OSPFv2 Area 0, passive interfaces, default-information originate | ✅ Implemented | [P05](../obsidian-notes/P05-OSPF-and-Static-Routing.md) |
 | 6 | Network Services | DHCP, DNS, NTP (auth), SNMP, Syslog, FTP, PAT | ✅ Implemented | [P06](../obsidian-notes/P06-Network-Services.md) |
 | 7 | Security | Extended ACLs, port security, DHCP snooping, DAI | ✅ Implemented | [P07](../obsidian-notes/P07-Security.md) |
 | 8 | IPv6 | Dual-stack, static IPv6 routes, IPv6 ACL | ✅ Implemented | [P08](../obsidian-notes/P08-IPv6.md) |
-| 9 | Wireless | Cisco vWLC, LWAP join, WPA2-PSK WLAN | ✅ Implemented | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
+| 9 | Wireless | Cisco vWLC, WLAN/VLAN mapping, CAPWAP and WPA2-PSK concepts | ⚠️ WLC management configured; AP join unverified | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
 
 ---
 
@@ -82,7 +88,7 @@ Deviations from the original lab design, confirmed against harvested running con
 | Security | Extended ACLs (named), port security (sticky MAC), DHCP snooping, Dynamic ARP Inspection, SSHv2 |
 | Network Services | DHCP relay (`ip helper-address`), DNS, NTP with authentication, SNMP v2c, Syslog, FTP |
 | IPv6 | Dual-stack addressing (EUI-64), static IPv6 routing, IPv6 ACL |
-| Wireless | Cisco vWLC 8.7, LWAP join and association, WPA2-PSK WLAN, dynamic VLAN interface |
+| Wireless | Cisco vWLC 8.7, WLAN/VLAN mapping, CAPWAP concepts, WPA2-PSK |
 | Troubleshooting | Structured fault injection (8 faults across L2/L3/Security), OSI-layer isolation methodology |
 
 ---

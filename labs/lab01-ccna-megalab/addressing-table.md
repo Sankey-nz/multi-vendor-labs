@@ -1,27 +1,57 @@
 # Addressing Table — Lab 01 CCNA Megalab
 
-> **Last verified:** 2026-09-21 — fully reconciled against live harvested running configs.
-> All addresses sourced directly from device configs in `configs/`. Deviations from original design are noted inline.
+> **Last reviewed:** 2026-09-21. Network-device addresses are taken from the harvested configs where available; WLC, server, and Kali details use the source noted in their sections. Known deviations are labeled rather than presented as intended design.
 
 ---
 
 ## VLAN Definitions
 
-| VLAN ID | Name | Subnet | HSRP VIP | Role |
-|---------|------|--------|----------|------|
-| 10 | MGMT-A | 10.1.0.0/24 | 10.1.0.1 | Office A Management / PC |
-| 20 | STAFF-A | 10.2.0.0/24 | 10.2.0.1 | Office A Staff / Voice |
-| 30 | STAFF-B | 10.5.0.0/24 | 10.5.0.1 | Office B Staff / Servers |
-| 40 | MGMT-B | 10.3.0.0/24 | 10.3.0.1 | Office B Management / PC |
-| 40 (WLC) | Wi-Fi | 10.6.0.0/24 | 10.6.0.1 | Wireless clients (VLAN 40 on DSW-A) |
-| 99 | NATIVE/MGMT | 10.0.0.0/28 (A), 10.0.0.16/28 (B) | 10.0.0.1 / 10.0.0.17 | Network Management |
-| 1000 | NATIVE-TRUNK | — | — | Native VLAN on all trunks (unused) |
-| 999 | UNUSED | — | — | Blackhole — unused ports |
+VLAN numbers are locally significant. The same VLAN ID can have a different subnet and purpose in Office A and Office B because the sites are separate Layer 2 domains connected by routed links.
 
-> **Note:** VLAN numbering deviates from original design. Live configs use:
-> - VLAN 10 = PC/Management (Office A), VLAN 20 = Voice/Staff (Office A)
-> - VLAN 30 = Staff/Servers (Office B), VLAN 40 = PC/Management (Office B)
-> - VLAN 40 on DSW-A side = Wi-Fi (10.6.0.0/24) — different VLAN meaning per office
+| Site | VLAN | Subnet and mask | HSRP gateway | Purpose |
+|------|-----:|-----------------|--------------|---------|
+| Office A | 10 | `10.1.0.0/24` (`255.255.255.0`) | `10.1.0.1` | PCs / management clients |
+| Office A | 20 | `10.2.0.0/24` (`255.255.255.0`) | `10.2.0.1` | Staff / voice |
+| Office A | 40 | `10.6.0.0/24` (`255.255.255.0`) | `10.6.0.1` | Wireless clients |
+| Office B | 10 | `10.3.0.0/24` (`255.255.255.0`) | `10.3.0.1` | PCs / management clients |
+| Office B | 20 | `10.4.0.0/24` (`255.255.255.0`) | `10.4.0.1` | Staff |
+| Office B | 30 | `10.5.0.0/24` (`255.255.255.0`) | `10.5.0.1` | Servers / staff |
+| Office A | 99 | `10.0.0.0/28` (`255.255.255.240`) | `10.0.0.1` | Network management, including WLC `10.0.0.7` |
+| Office B | 99 | `10.0.0.16/28` (`255.255.255.240`) | `10.0.0.17` | Network management |
+| Both sites | 1000 | — | — | Unused native VLAN on trunks |
+| Both sites | 999 | — | — | Unused/blackhole ports |
+
+### How the masks divide the address space
+
+The prefix length tells how many leading bits identify the network. The remaining bits identify addresses inside that subnet. These are the mask sizes used in this lab:
+
+| Prefix | Dotted-decimal mask | Addresses per subnet | Usable host addresses | Example use |
+|--------|---------------------|----------------------|-----------------------|-------------|
+| `/24` | `255.255.255.0` | 256 | 254 | User, staff, server, and wireless VLANs |
+| `/28` | `255.255.255.240` | 16 | 14 | Each site's management VLAN |
+| `/30` | `255.255.255.252` | 4 | 2 | Routed point-to-point links |
+| `/32` | `255.255.255.255` | 1 address | 1 interface address | Router and switch loopbacks |
+
+For example, the Office A management subnet is `10.0.0.0/28`:
+
+```text
+Mask bits:       11111111.11111111.11111111.11110000
+Dotted mask:     255.255.255.240
+Block size:      16 addresses (the final octet advances by 16)
+Network address: 10.0.0.0
+Usable range:    10.0.0.1–10.0.0.14
+Broadcast:       10.0.0.15
+HSRP gateway:    10.0.0.1
+WLC management:  10.0.0.7
+```
+
+The next `/28` block is `10.0.0.16/28`: usable `10.0.0.17–10.0.0.30`, broadcast `10.0.0.31`, and Office B HSRP gateway `10.0.0.17`.
+
+For a routed link, `10.0.0.44/30` has network address `.44`, usable endpoint addresses `.45` and `.46`, and broadcast `.47`. The `/30` mask (`255.255.255.252`) advances in blocks of four addresses, leaving two usable endpoint addresses per link.
+
+The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30`, `.52/30`, `.56/30`, `.60/30`, `.64/30`, `.68/30`, and `.72/30`. Device loopbacks use `10.0.0.76/32` through `10.0.0.82/32`.
+
+> **Live mask exception:** ASW-A1 currently has `10.0.0.4/24` on its VLAN 99 SVI, while the planned Office A management subnet and the other Office A management addresses use `/28`. ASW-A2 and ASW-A3 use `/28`. This mask mismatch is documented as live configuration, not as the intended subnet allocation.
 
 ---
 
@@ -151,8 +181,8 @@
 | Device | Vlan99 IP | Mask | Default GW | Config hostname | Source |
 |--------|-----------|------|------------|-----------------|--------|
 | ASW-A1 | 10.0.0.4 | /24 | 10.0.0.1 | ASW-A1 | ASW-A1.txt |
-| ASW-A2 | 10.0.0.5 | /24 | 10.0.0.1 | ASW-A2 | ASW-A2.txt |
-| ASW-A3 | 10.0.0.6 | /24 | 10.0.0.1 | ASW-A3 | ASW-A3.txt |
+| ASW-A2 | 10.0.0.5 | /28 | 10.0.0.1 | ASW-A2 | ASW-A2.txt |
+| ASW-A3 | 10.0.0.6 | /28 | 10.0.0.1 | ASW-A3 | ASW-A3.txt |
 | ASW-B1 | 10.0.0.20 | /28 | 10.0.0.17 | ASW-B1 | ASW-B1.txt |
 | ASW-B2 | 10.0.0.21 | /28 | 10.0.0.17 | AWS-B2 ⚠️ | ASW-B2.txt |
 | ASW-B3 | 10.0.0.22 | /28 | 10.0.0.17 | ASW-B3 | ASW-B3.txt |
@@ -160,7 +190,7 @@
 
 > ⚠️ **ASW-B2 hostname typo:** Device is configured with `hostname AWS-B2` (A and S swapped). Functionally fine but inconsistent. Fix with `hostname ASW-B2` if needed.
 >
-> ⚠️ **ASW-A side mask:** ASW-A1/A2/A3 use `/24` for Vlan99 (10.0.0.x/255.255.255.0) instead of `/28`. This is wider than the Office B ASW switches which correctly use `/28`. Not a connectivity issue but is inconsistent with the /28 subnet design.
+> ⚠️ **ASW-A1 mask exception:** ASW-A1 uses `/24` (`255.255.255.0`) on its VLAN 99 SVI, while ASW-A2/A3 and the planned Office A management subnet use `/28` (`255.255.255.240`). This is wider than the allocated subnet and is inconsistent, although it does not by itself prevent local reachability.
 
 ---
 
@@ -192,7 +222,7 @@ All devices use `10.5.0.4` as name-server and `SankeyLab` as domain-name (confir
 
 | Interface | VLAN | IP Address | Purpose |
 |-----------|------|------------|---------|
-| eth0 | 99 | 10.0.0.14/24 | Switch management (VLAN 99) |
+| eth0 | 99 | 10.0.0.14/28 | Switch and WLC management (VLAN 99) |
 | eth2 | 10 | 10.1.0.13/24 | User/access VLAN — source IP for device SSH |
 
 **Connected to:** ASW-A1 (visible in topology as "Linux" node)
