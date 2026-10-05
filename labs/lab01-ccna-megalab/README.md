@@ -39,7 +39,7 @@ The status column describes the recorded lab configuration, not a claim that eve
 | 6 | Network Services | DHCP, DNS, NTP (auth), SNMP, Syslog, FTP, PAT | ✅ Implemented | [P06](../obsidian-notes/P06-Network-Services.md) |
 | 7 | Security | Extended ACLs, port security, DHCP snooping, DAI | ✅ Implemented | [P07](../obsidian-notes/P07-Security.md) |
 | 8 | IPv6 | Dual-stack, static IPv6 routes, IPv6 ACL | ✅ Implemented | [P08](../obsidian-notes/P08-IPv6.md) |
-| 9 | Wireless | Cisco vWLC, WLAN/VLAN mapping, CAPWAP and WPA2-PSK concepts | ⚠️ WLC management configured; AP join unverified | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
+| 9 | Wireless | Cisco vWLC, WLAN/VLAN mapping, CAPWAP and WPA2-PSK concepts | ✅ Implemented | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
 
 ---
 
@@ -47,10 +47,17 @@ The status column describes the recorded lab configuration, not a claim that eve
 
 Deviations from the original lab design, confirmed against harvested running configs (September 2026):
 
-- **WAN Connectivity:** R1 connects directly to ISP-B via Gi0/3 (DHCP), with `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp` as the default route.
-- **CSW1/CSW2 are pure L3 routed core:** No SVIs, no HSRP on either core switch. All VLAN SVIs and HSRP virtual IPs live on the DSW distribution layer.
-- **WLC1 management IP:** Live management interface is `10.0.0.7/28` on VLAN 99, connected to ASW-A1 — not `192.168.30.20/24` on VLAN 60 as originally documented.
-- **DHCP hosted on R1:** All DHCP pools (A-Mgmt, A-PC, A-Phone, B-Mgmt, B-PC, Wi-Fi) run on R1, not WIN-SV1. WIN-SV1 acts as domain controller, DNS, NTP, and file server.
+**WAN & Routing**
+- **Edge Connectivity:** R1 connects directly to ISP-B via Gi0/3 (DHCP).
+- **Default Gateway:** Default route is `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp`.
+
+**Core Architecture**
+- **Pure L3 Core:** CSW1 and CSW2 function as a purely routed core.
+- **SVI Placement:** No SVIs or HSRP on core switches; all VLAN SVIs and HSRP virtual IPs reside on the DSW distribution layer.
+
+**Device Specifics**
+- **WLC1 Management:** Live IP is `10.0.0.7/28` on VLAN 99 (connected to ASW-A1), replacing the original `192.168.30.20/24` on VLAN 60.
+- **DHCP Services:** All pools (A-Mgmt, A-PC, A-Phone, B-Mgmt, B-PC, Wi-Fi) are hosted on R1 rather than WIN-SV1.
 
 ---
 
@@ -79,16 +86,23 @@ Deviations from the original lab design, confirmed against harvested running con
 
 ## Skills Demonstrated
 
-| Domain | Technologies |
-|--------|-------------|
-| Routing | OSPFv2 Area 0, passive interfaces, `default-information originate`, static routes, PAT/NAT overload |
-| Switching | VLANs, 802.1Q trunking, VTP, Rapid PVST+, EtherChannel (LACP + PAgP), L2 and L3 channels |
-| Redundancy | HSRP active/standby per VLAN group across DSW distribution pairs |
-| Security | Extended ACLs (named), port security (sticky MAC), DHCP snooping, Dynamic ARP Inspection, SSHv2 |
-| Network Services | DHCP relay (`ip helper-address`), DNS, NTP with authentication, SNMP v2c, Syslog, FTP |
-| IPv6 | Dual-stack addressing (EUI-64), static IPv6 routing, IPv6 ACL |
-| Wireless | Cisco vWLC 8.7, WLAN/VLAN mapping, CAPWAP concepts, WPA2-PSK |
-| Troubleshooting | Structured fault injection (8 faults across L2/L3/Security), OSI-layer isolation methodology |
+**Routing & L3 Services**
+- **OSPFv2:** Area 0, passive interfaces, `default-information originate`.
+- **L3 Connectivity:** Static routing, PAT/NAT overload, IPv6 dual-stack (EUI-64), static IPv6 routes.
+
+**Switching & L2 Topology**
+- **VLANs:** 802.1Q trunking, VTP, Rapid PVST+ (STP).
+- **Link Aggregation:** EtherChannel (LACP & PAgP), L2 and L3 channels.
+- **Redundancy:** HSRP active/standby group distribution across DSW pairs.
+
+**Security & Network Services**
+- **Hardening:** SSHv2, Port Security (sticky MAC), Extended Named ACLs.
+- **L2 Security:** DHCP Snooping, Dynamic ARP Inspection (DAI).
+- **Infrastructure Services:** DHCP relay (`ip helper-address`), DNS, NTP (authenticated), SNMP v2c, Syslog, FTP.
+
+**Wireless & Troubleshooting**
+- **Cisco vWLC:** 8.7 version, WLAN/VLAN mapping, CAPWAP, WPA2-PSK.
+- **Diagnostics:** Structured fault injection (8 scenarios), OSI-layer isolation methodology.
 
 ---
 
