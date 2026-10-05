@@ -1,6 +1,6 @@
 # Addressing Table — Lab 01 CCNA Megalab
 
-> **Last reviewed:** 2026-09-21. Network-device addresses are taken from the harvested configs where available; WLC, server, and Kali details use the source noted in their sections. Known deviations are labeled rather than presented as intended design.
+> **Last reviewed:** 2026-10-05. Network-device addresses are taken from the harvested configs where available; WLC, server, and Kali details use the source noted in their sections. Known deviations are labeled rather than presented as intended design.
 
 ---
 
@@ -57,10 +57,10 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 | Interface | IPv4 Address | IPv6 Address | Description | Source |
 |-----------|--------------|--------------|-------------|--------|
-| Gi0/1 | 10.0.0.33/30 | 2001:DB8:A1::/64 | Link to CSW1 e0/2 | R1.txt |
-| Gi0/0 | 10.0.0.37/30 | 2001:DB8:A2::/64 | Link to CSW2 e0/2 | R1.txt |
-| Gi0/2 | 203.0.113.6/30 | 2001:DB8:B::2/64 | WAN ISP-A (static) | R1.txt |
-| Gi0/3 | DHCP (192.168.146.x) | 2001:DB8:A::2/64 | WAN ISP-B / default route egress | R1.txt |
+| Gi0/1 | 10.0.0.33/30 | EUI-64: `2001:DB8:A1::/64` | Link to CSW1 e0/2 | R1.txt |
+| Gi0/0 | 10.0.0.37/30 | EUI-64: `2001:DB8:A2::/64` | Link to CSW2 e0/2 | R1.txt |
+| Gi0/2 | 203.0.113.6/30 | `2001:DB8:B::2/64` | WAN ISP-A (static) | R1.txt |
+| Gi0/3 | DHCP (192.168.146.x) | `2001:DB8:A::2/64` | WAN ISP-B / default route egress | R1.txt |
 | Loopback0 | 10.0.0.76/32 | — | OSPF Router ID | R1.txt |
 
 **Default route:** `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp` — via ISP-B (Gi0/3).
@@ -75,8 +75,8 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 | Interface | IPv4 Address | IPv6 Address | Description | Source |
 |-----------|--------------|--------------|-------------|--------|
 | Loopback0 | 10.0.0.77/32 | — | OSPF Router ID | CSW1.txt |
-| e0/2 | 10.0.0.34/30 | 2001:DB8:A1::/64 | Uplink to R1 Gi0/1 | CSW1.txt |
-| Port-channel1 | 10.0.0.41/30 | ipv6 enabled | L3 EtherChannel to CSW2 (mode on) | CSW1.txt |
+| e0/2 | 10.0.0.34/30 | EUI-64: `2001:DB8:A1::/64` | Uplink to R1 Gi0/1 | CSW1.txt |
+| Port-channel1 | 10.0.0.41/30 | Link-local only (`ipv6 enable`) | L3 EtherChannel to CSW2 (mode on) | CSW1.txt |
 | e0/3 | 10.0.0.45/30 | — | Routed downlink to DSW-A1 | CSW1.txt |
 | e1/0 | 10.0.0.49/30 | — | Routed downlink to DSW-A2 | CSW1.txt |
 | e1/1 | 10.0.0.53/30 | — | Routed downlink to DSW-B1 | CSW1.txt |
@@ -91,8 +91,8 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 | Interface | IPv4 Address | IPv6 Address | Description | Source |
 |-----------|--------------|--------------|-------------|--------|
 | Loopback0 | 10.0.0.78/32 | — | OSPF Router ID | CSW2.txt |
-| e0/2 | 10.0.0.38/30 | 2001:DB8:A2::/64 | Uplink to R1 Gi0/0 | CSW2.txt |
-| Port-channel1 | 10.0.0.42/30 | ipv6 enabled | L3 EtherChannel to CSW1 (mode on) | CSW2.txt |
+| e0/2 | 10.0.0.38/30 | EUI-64: `2001:DB8:A2::/64` | Uplink to R1 Gi0/0 | CSW2.txt |
+| Port-channel1 | 10.0.0.42/30 | Link-local only (`ipv6 enable`) | L3 EtherChannel to CSW1 (mode on) | CSW2.txt |
 | e0/3 | 10.0.0.61/30 | — | Routed downlink to DSW-A1 | CSW2.txt |
 | e1/0 | 10.0.0.65/30 | — | Routed downlink to DSW-A2 | CSW2.txt |
 | e1/1 | 10.0.0.69/30 | — | Routed downlink to DSW-B1 | CSW2.txt |
@@ -176,17 +176,30 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 | Device | Vlan99 IP | Mask | Default GW | Config hostname | Source |
 |--------|-----------|------|------------|-----------------|--------|
-| ASW-A1 | 10.0.0.4 | /28 | 10.0.0.1 | ASW-A1 | ASW-A1.txt |
+| ASW-A1 | 10.0.0.4 | /24 | 10.0.0.1 | ASW-A1 | ASW-A1.txt |
 | ASW-A2 | 10.0.0.5 | /28 | 10.0.0.1 | ASW-A2 | ASW-A2.txt |
 | ASW-A3 | 10.0.0.6 | /28 | 10.0.0.1 | ASW-A3 | ASW-A3.txt |
 | ASW-B1 | 10.0.0.20 | /28 | 10.0.0.17 | ASW-B1 | ASW-B1.txt |
-| ASW-B2 | 10.0.0.21 | /28 | 10.0.0.17 | ASW-B2 | ASW-B2.txt |
+| ASW-B2 | 10.0.0.21 | /28 | 10.0.0.17 | AWS-B2 | ASW-B2.txt |
 | ASW-B3 | 10.0.0.22 | /28 | 10.0.0.17 | ASW-B3 | ASW-B3.txt |
 | WLC1 | 10.0.0.7 | /28 | 10.0.0.1 | vWLC | LLM handoff |
 
-> ⚠️ **ASW-B2 hostname typo:** Device is configured with `hostname AWS-B2` (A and S swapped). Functionally fine but inconsistent. Fix with `hostname ASW-B2` if needed.
->
-> ⚠️ **ASW-A1 mask exception:** ASW-A1 uses `/24` (`255.255.255.0`) on its VLAN 99 SVI, while ASW-A2/A3 and the planned Office A management subnet use `/28` (`255.255.255.240`). This is wider than the allocated subnet and is inconsistent, although it does not by itself prevent local reachability.
+## IPv6 Addressing — Configured Interfaces
+
+These entries reflect the device configurations in `configs/`. EUI-64 entries identify the configured `/64` prefix and method; the exact interface identifier is generated from each interface's MAC address. A dash in the IPv6 columns above means no IPv6 address is configured on that interface.
+
+| Device | Interface | IPv6 address or prefix | Method / notes | Source |
+|--------|-----------|------------------------|----------------|--------|
+| R1 | Gi0/0 → CSW2 e0/2 | `2001:DB8:A2::/64` | EUI-64 | R1.txt |
+| CSW2 | e0/2 → R1 Gi0/0 | `2001:DB8:A2::/64` | EUI-64 | CSW2.txt |
+| R1 | Gi0/1 → CSW1 e0/2 | `2001:DB8:A1::/64` | EUI-64 | R1.txt |
+| CSW1 | e0/2 → R1 Gi0/1 | `2001:DB8:A1::/64` | EUI-64 | CSW1.txt |
+| R1 | Gi0/2 (ISP-A) | `2001:DB8:B::2/64` | Manually configured | R1.txt |
+| R1 | Gi0/3 (ISP-B) | `2001:DB8:A::2/64` | Manually configured | R1.txt |
+| CSW1 | Port-channel1 → CSW2 | Link-local only | `ipv6 enable`; no global address configured | CSW1.txt |
+| CSW2 | Port-channel1 → CSW1 | Link-local only | `ipv6 enable`; no global address configured | CSW2.txt |
+
+No IPv6 addresses are configured on the distribution/access switches, their SVIs, or the device loopbacks in the available config files.
 
 ---
 
