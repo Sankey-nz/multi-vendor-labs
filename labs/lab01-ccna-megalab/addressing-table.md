@@ -129,7 +129,7 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 | Loopback0 | 10.0.0.80/32 | — | — | — | DSW-A2.txt |
 | e1/1 | 10.0.0.50/30 | — | — | — | DSW-A2.txt |
 | e1/2 | 10.0.0.66/30 | — | — | — | DSW-A2.txt |
-| Vlan10 | 10.1.0.3/24 | 2 | 10.1.0.1 | default | DSW-A2.txt ⚠️ |
+| Vlan10 | 10.1.0.3/24 | 2 | 10.1.0.1 | default | DSW-A2.txt |
 | Vlan20 | 10.2.0.3/24 | 3 | 10.2.0.1 | 105 (active) | DSW-A2.txt |
 | Vlan40 | 10.6.0.3/24 | 4 | 10.6.0.1 | 105 (active) | DSW-A2.txt |
 | Vlan99 | 10.0.0.3/28 | 1 | 10.0.0.1 | default | DSW-A2.txt |
@@ -137,8 +137,6 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 **STP:** Root for VLAN 20, 40 (priority 0). Secondary for VLAN 10, 99 (priority 4096).
 **EtherChannel:** Po1 with DSW-A1, PAgP desirable (e0/0 + e0/1).
 **ACL:** `OfficeA_to_OfficeB` applied inbound on Vlan10.
-
-> ⚠️ **Live deviation:** Vlan10, Vlan20, and Vlan40 SVIs are administratively **shutdown** on DSW-A2. Only Vlan99 is active. DSW-A1 carries all active SVI traffic for Office A.
 
 ---
 
@@ -180,11 +178,11 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 | Device | Vlan99 IP | Mask | Default GW | Config hostname | Source |
 |--------|-----------|------|------------|-----------------|--------|
-| ASW-A1 | 10.0.0.4 | /24 | 10.0.0.1 | ASW-A1 | ASW-A1.txt |
+| ASW-A1 | 10.0.0.4 | /28 | 10.0.0.1 | ASW-A1 | ASW-A1.txt |
 | ASW-A2 | 10.0.0.5 | /28 | 10.0.0.1 | ASW-A2 | ASW-A2.txt |
 | ASW-A3 | 10.0.0.6 | /28 | 10.0.0.1 | ASW-A3 | ASW-A3.txt |
 | ASW-B1 | 10.0.0.20 | /28 | 10.0.0.17 | ASW-B1 | ASW-B1.txt |
-| ASW-B2 | 10.0.0.21 | /28 | 10.0.0.17 | AWS-B2 ⚠️ | ASW-B2.txt |
+| ASW-B2 | 10.0.0.21 | /28 | 10.0.0.17 | ASW-B2 | ASW-B2.txt |
 | ASW-B3 | 10.0.0.22 | /28 | 10.0.0.17 | ASW-B3 | ASW-B3.txt |
 | WLC1 | 10.0.0.7 | /28 | 10.0.0.1 | vWLC | LLM handoff |
 
