@@ -51,7 +51,7 @@ For a routed link, `10.0.0.44/30` has network address `.44`, usable endpoint add
 
 The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30`, `.52/30`, `.56/30`, `.60/30`, `.64/30`, `.68/30`, and `.72/30`. Device loopbacks use `10.0.0.76/32` through `10.0.0.82/32`.
 
-> **Live mask exception:** ASW-A1 currently has `10.0.0.4/24` on its VLAN 99 SVI, while the planned Office A management subnet and the other Office A management addresses use `/28`. ASW-A2 and ASW-A3 use `/28`. This mask mismatch is documented as live configuration, not as the intended subnet allocation.
+> **Live mask exception:** ASW-A1 currently has `10.0.0.4/28` on its VLAN 99 SVI, matching the planned Office A management subnet. This inconsistency with the original live recording is now resolved.
 
 ---
 
