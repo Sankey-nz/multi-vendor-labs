@@ -57,13 +57,13 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ## Edge Router — R1
 
-| Interface | IPv4 Address | Description | Source |
-|-----------|--------------|-------------|--------|
-| Gi0/1 | 10.0.0.33/30 | Link to CSW1 e0/2 | R1.txt |
-| Gi0/0 | 10.0.0.37/30 | Link to CSW2 e0/2 | R1.txt |
-| Gi0/2 | 203.0.113.6/30 | WAN ISP-A (static) | R1.txt |
-| Gi0/3 | DHCP (192.168.146.x) | WAN ISP-B / default route egress | R1.txt |
-| Loopback0 | 10.0.0.76/32 | OSPF Router ID | R1.txt |
+| Interface | IPv4 Address | IPv6 Address | Description | Source |
+|-----------|--------------|--------------|-------------|--------|
+| Gi0/1 | 10.0.0.33/30 | 2001:DB8:A1::/64 | Link to CSW1 e0/2 | R1.txt |
+| Gi0/0 | 10.0.0.37/30 | 2001:DB8:A2::/64 | Link to CSW2 e0/2 | R1.txt |
+| Gi0/2 | 203.0.113.6/30 | 2001:DB8:B::2/64 | WAN ISP-A (static) | R1.txt |
+| Gi0/3 | DHCP (192.168.146.x) | 2001:DB8:A::2/64 | WAN ISP-B / default route egress | R1.txt |
+| Loopback0 | 10.0.0.76/32 | — | OSPF Router ID | R1.txt |
 
 **Default route:** `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp` — via ISP-B (Gi0/3).
 **PAT:** NAT overload via Gi0/3 for all internal subnets (ACL 2).
