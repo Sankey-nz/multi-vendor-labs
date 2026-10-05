@@ -33,7 +33,7 @@ The status column describes the recorded lab configuration, not a claim that eve
 |------|-------|----------|--------|-------|
 | 1 | Initial Device Setup | Hostnames, SSH, banners, local auth, CDP/LLDP | ✅ Implemented | [P01](../obsidian-notes/P01-Initial-Setup.md) |
 | 2 | VLANs & L2 EtherChannel | VLAN DB, VTP, 802.1Q trunking, PAgP EtherChannel | ✅ Implemented | [P02](../obsidian-notes/P02-VLANs-and-L2-EtherChannel.md) |
-| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ⚠️ Configured; DSW-A2 user SVIs are shutdown in the recorded live state | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
+| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ✅ Implemented | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
 | 4 | Spanning Tree | Rapid PVST+, STP root priorities, PortFast, BPDU Guard | ✅ Implemented | [P04](../obsidian-notes/P04-Rapid-Spanning-Tree.md) |
 | 5 | Routing | OSPFv2 Area 0, passive interfaces, default-information originate | ✅ Implemented | [P05](../obsidian-notes/P05-OSPF-and-Static-Routing.md) |
 | 6 | Network Services | DHCP, DNS, NTP (auth), SNMP, Syslog, FTP, PAT | ✅ Implemented | [P06](../obsidian-notes/P06-Network-Services.md) |
@@ -49,7 +49,6 @@ Deviations from the original lab design, confirmed against harvested running con
 
 - **WAN Connectivity:** R1 connects directly to ISP-B via Gi0/3 (DHCP), with `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp` as the default route.
 - **CSW1/CSW2 are pure L3 routed core:** No SVIs, no HSRP on either core switch. All VLAN SVIs and HSRP virtual IPs live on the DSW distribution layer.
-- **DSW-A2 SVIs shutdown:** Vlan10, Vlan20, and Vlan40 interfaces are administratively shutdown on DSW-A2. DSW-A1 carries all active SVI traffic for Office A. Only Vlan99 (management) is active on DSW-A2.
 - **WLC1 management IP:** Live management interface is `10.0.0.7/28` on VLAN 99, connected to ASW-A1 — not `192.168.30.20/24` on VLAN 60 as originally documented.
 - **DHCP hosted on R1:** All DHCP pools (A-Mgmt, A-PC, A-Phone, B-Mgmt, B-PC, Wi-Fi) run on R1, not WIN-SV1. WIN-SV1 acts as domain controller, DNS, NTP, and file server.
 
