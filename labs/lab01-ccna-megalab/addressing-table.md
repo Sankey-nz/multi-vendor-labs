@@ -74,15 +74,15 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ## Core Layer — CSW1
 
-| Interface | IPv4 Address | Description | Source |
-|-----------|--------------|-------------|--------|
-| Loopback0 | 10.0.0.77/32 | OSPF Router ID | CSW1.txt |
-| e0/2 | 10.0.0.34/30 | Uplink to R1 Gi0/1 | CSW1.txt |
-| Port-channel1 | 10.0.0.41/30 | L3 EtherChannel to CSW2 (mode on) | CSW1.txt |
-| e0/3 | 10.0.0.45/30 | Routed downlink to DSW-A1 | CSW1.txt |
-| e1/0 | 10.0.0.49/30 | Routed downlink to DSW-A2 | CSW1.txt |
-| e1/1 | 10.0.0.53/30 | Routed downlink to DSW-B1 | CSW1.txt |
-| e1/2 | 10.0.0.57/30 | Routed downlink to DSW-B2 | CSW1.txt |
+| Interface | IPv4 Address | IPv6 Address | Description | Source |
+|-----------|--------------|--------------|-------------|--------|
+| Loopback0 | 10.0.0.77/32 | — | OSPF Router ID | CSW1.txt |
+| e0/2 | 10.0.0.34/30 | 2001:DB8:A1::/64 | Uplink to R1 Gi0/1 | CSW1.txt |
+| Port-channel1 | 10.0.0.41/30 | ipv6 enabled | L3 EtherChannel to CSW2 (mode on) | CSW1.txt |
+| e0/3 | 10.0.0.45/30 | — | Routed downlink to DSW-A1 | CSW1.txt |
+| e1/0 | 10.0.0.49/30 | — | Routed downlink to DSW-A2 | CSW1.txt |
+| e1/1 | 10.0.0.53/30 | — | Routed downlink to DSW-B1 | CSW1.txt |
+| e1/2 | 10.0.0.57/30 | — | Routed downlink to DSW-B2 | CSW1.txt |
 
 > **No SVIs, no HSRP on CSW1.** Pure L3 routed core. All HSRP/SVI config lives on DSW layer.
 
@@ -90,15 +90,15 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ## Core Layer — CSW2
 
-| Interface | IPv4 Address | Description | Source |
-|-----------|--------------|-------------|--------|
-| Loopback0 | 10.0.0.78/32 | OSPF Router ID | CSW2.txt |
-| e0/2 | 10.0.0.38/30 | Uplink to R1 Gi0/0 | CSW2.txt |
-| Port-channel1 | 10.0.0.42/30 | L3 EtherChannel to CSW1 (mode on) | CSW2.txt |
-| e0/3 | 10.0.0.61/30 | Routed downlink to DSW-A1 | CSW2.txt |
-| e1/0 | 10.0.0.65/30 | Routed downlink to DSW-A2 | CSW2.txt |
-| e1/1 | 10.0.0.69/30 | Routed downlink to DSW-B1 | CSW2.txt |
-| e1/2 | 10.0.0.73/30 | Routed downlink to DSW-B2 | CSW2.txt |
+| Interface | IPv4 Address | IPv6 Address | Description | Source |
+|-----------|--------------|--------------|-------------|--------|
+| Loopback0 | 10.0.0.78/32 | — | OSPF Router ID | CSW2.txt |
+| e0/2 | 10.0.0.38/30 | 2001:DB8:A2::/64 | Uplink to R1 Gi0/0 | CSW2.txt |
+| Port-channel1 | 10.0.0.42/30 | ipv6 enabled | L3 EtherChannel to CSW1 (mode on) | CSW2.txt |
+| e0/3 | 10.0.0.61/30 | — | Routed downlink to DSW-A1 | CSW2.txt |
+| e1/0 | 10.0.0.65/30 | — | Routed downlink to DSW-A2 | CSW2.txt |
+| e1/1 | 10.0.0.69/30 | — | Routed downlink to DSW-B1 | CSW2.txt |
+| e1/2 | 10.0.0.73/30 | — | Routed downlink to DSW-B2 | CSW2.txt |
 
 > **No SVIs, no HSRP on CSW2.** Pure L3 routed core.
 
