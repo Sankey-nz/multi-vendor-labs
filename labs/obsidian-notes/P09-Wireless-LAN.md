@@ -1,10 +1,13 @@
 # P09 — Wireless LAN (WLC GUI)
 
 > [!NOTE] Part Summary
-> **Topic:** Configure a Wi-Fi WLAN through the WLC1 web GUI — create a dynamic interface, build a WLAN with WPA2-AES, and verify LWAPs associate
-> **NetBridge Scenario:** Office A needs a wireless network for employees. All the switching infrastructure (VLAN 40, trunks, DHCP pool) was set up in earlier parts. Part 9 completes the wireless side through the WLC's web interface — the way enterprise wireless is actually managed.
+> **Topic:** Learn the WLC GUI workflow for creating a dynamic interface and WLAN, then verify AP/client behavior.
+> **NetBridge Scenario:** Office A has VLAN 40, trunks, a DHCP pool, and a managed vWLC. The harvested configs confirm WLC management on VLAN 99, but do not verify AP registration, WLAN setup, or wireless-client service.
 > **Key Concepts:** WLC GUI (`https://`), dynamic interface (maps WLAN to VLAN), WLAN (SSID + security), LWAP association, WPA2-AES PSK, CAPWAP tunnel
 > **Devices involved:** WLC1, LWAP-A1, LWAP-A2 (access points), wireless clients
+
+> [!IMPORTANT] Live state and example values
+> The live WLC management address is `10.0.0.7/28` on VLAN 99; access it at `https://10.0.0.7`. Use credentials already assigned to your lab—none are documented here. VLAN 40 is the wireless-client network `10.6.0.0/24`, with gateway `10.6.0.1`. Dynamic-interface and WLAN values below are configuration guidance, not evidence those features are currently configured. AP registration and wireless-client connectivity remain unverified.
 
 ---
 
@@ -26,7 +29,7 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 
 **LWAP discovery flow (how APs find the WLC):**
 1. LWAP boots → sends DHCP request
-2. DHCP response includes **option 43** with WLC IP (`10.1.99.5`)
+2. DHCP response includes **option 43** with WLC IP (`10.0.0.7`)
 3. LWAP sends CAPWAP Join Request to WLC IP
 4. WLC accepts → LWAP becomes associated and managed centrally
 
@@ -35,7 +38,7 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 ## Live Config Evidence (Harvested 2026-09-14)
 
 > [!WARNING] Design Deviations — Lab Actuals Differ from Plan
-> The running lab diverges from the documented design in three ways. The evidence below reflects what is actually configured, not the Packet Tracer walkthrough values.
+> The running lab differs from older walkthrough examples. The evidence below reflects what is configured; the guide values are illustrative unless explicitly marked as live.
 >
 > | Parameter | Planned (Note) | Actual (Running Lab) |
 > |---|---|---|
@@ -86,7 +89,7 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 > Both ports are trunks allowing **VLAN 40 and VLAN 99** — VLAN 99 carries the WLC management interface (`10.0.0.7/28`, gateway `10.0.0.1`).
 
 > [!TIP] Key Takeaway
-> In this lab the WLC management lives on **VLAN 99** (`10.0.0.x/28` subnet), not on a dedicated wireless management VLAN as the Packet Tracer guide assumes. Always verify the actual management IP and VLAN before attempting GUI access — `https://10.0.0.7` is the correct URL for this deployment.
+> In this lab the WLC management lives on **VLAN 99** (`10.0.0.x/28` subnet). Always verify the actual management IP and VLAN before attempting GUI access — `https://10.0.0.7` is the correct URL for this deployment.
 
 ---
 
@@ -99,11 +102,9 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 
 ```
 ! From a browser on a PC in the Management VLAN:
-https://10.1.99.5
+https://10.0.0.7
 
-! Login credentials (set during WLC initial setup)
-Username: admin
-Password: Cisco123
+! Enter the credentials configured in your lab.
 ```
 
 > [!WARNING] Always Use HTTPS
@@ -125,15 +126,15 @@ Password: Cisco123
 | Interface Name | `Wi-Fi` |
 | VLAN ID | `40` |
 | Port Number | `1` (the WLC's physical uplink port) |
-| IP Address | `10.1.40.5` (management IP for this interface) |
+| IP Address | Reserve an unused address in `10.6.0.0/24` for this interface |
 | Netmask | `255.255.255.0` |
-| Gateway | `10.1.40.1` (HSRP virtual IP for VLAN 40) |
-| Primary DHCP Server | `10.0.0.76` (R1's loopback) |
+| Gateway | `10.6.0.1` (HSRP virtual IP for VLAN 40) |
+| Primary DHCP Server | `10.0.0.76` (R1's loopback; verify relay and reachability) |
 
 **Apply and Save** after entering all fields.
 
 **Why a dynamic interface?**
-The WLC itself needs an IP in VLAN 40 so it can communicate on that VLAN (for management and DHCP relay). The WLC's physical port is a trunk — the dynamic interface adds VLAN 40 to that trunk logically.
+The WLC dynamic interface maps WLAN client traffic to VLAN 40. Do not reuse the WLC management address or the HSRP gateway address for it. Verify that the chosen address is reserved and that the WLC port and switching path carry VLAN 40.
 
 ---
 
@@ -163,7 +164,7 @@ The WLC itself needs an IP in VLAN 40 so it can communicate on that VLAN (for ma
 | WPA2 Encryption | `AES` (CCMP — strongest option) |
 | Auth Key Mgmt | `PSK` (pre-shared key) |
 | PSK Format | `ASCII` |
-| Pre-Shared Key | `JeremysITLab` (or whatever the lab specifies) |
+| Pre-Shared Key | Set a unique lab-only key; do not reuse a personal or production password |
 
 **Advanced tab:**
 - Ensure the WLAN is not mapped to the Management interface — it should use the Wi-Fi dynamic interface
@@ -211,13 +212,10 @@ This is the WLC equivalent of `write memory` — without it, config is lost on W
 
 ---
 
-### Section 6 — Known Packet Tracer Limitation
+### Section 6 — Validation Limits
 
-> [!NOTE] Key Concept
-> A specific Packet Tracer limitation applies to wireless DHCP — worth knowing so you don't chase a ghost problem.
-
-> [!WARNING] Packet Tracer Wireless DHCP Limitation
-> In Packet Tracer, wireless clients connecting to the Wi-Fi WLAN may receive an IP from the **Management VLAN pool** (`10.1.99.x`) instead of the **Wi-Fi VLAN 40 pool** (`10.1.40.x`). This is a **simulator limitation, not a configuration error**. In a real network with real hardware, clients would correctly receive IPs from the Wi-Fi DHCP pool. **Do not reconfigure DHCP or change the dynamic interface trying to fix this** — it cannot be fixed in Packet Tracer.
+> [!NOTE] Current evidence
+> This is a PNetLab lab, not Packet Tracer. The harvested switch configs show VLAN 40 allowed on the WLC-facing trunk, and R1 has a Wi-Fi DHCP pool for `10.6.0.0/24`. That does not prove the WLC dynamic interface, WLAN, CAPWAP registration, or client DHCP path is working. Test each stage and record observed results rather than attributing failures to a simulator limitation.
 
 ---
 
@@ -226,15 +224,15 @@ This is the WLC equivalent of `write memory` — without it, config is lost on W
 > [!TIP] Complete Part 9 — Step-by-Step GUI
 
 ```
-Step 1: Open browser → https://10.1.99.5 → Login (admin / Cisco123)
+Step 1: Open browser → https://10.0.0.7 → Login with lab-configured credentials
 
 Step 2: Create Dynamic Interface
   Controller → Interfaces → [New]
   Name: Wi-Fi
   VLAN: 40
   Port: 1
-  IP: 10.1.40.5 / 255.255.255.0
-  Gateway: 10.1.40.1
+  IP: reserve an unused address in 10.6.0.0/24
+  Gateway: 10.6.0.1
   DHCP: 10.0.0.76
   [Apply]
 
@@ -251,7 +249,7 @@ Step 3: Create WLAN
   WPA2: Enabled
   Encryption: AES
   Auth: PSK
-  Key: JeremysITLab
+  Key: use a unique lab-only value
   [Apply]
 
 Step 4: Verify AP Association
@@ -272,7 +270,7 @@ Step 5: Save WLC Config
 | WLAN created and enabled | WLANs → Summary | `Wi-Fi` WLAN, Status: Enabled |
 | WLAN security | WLANs → Wi-Fi → Security | WPA2, AES, PSK |
 | WLAN interface binding | WLANs → Wi-Fi → General | Interface: Wi-Fi (not Management) |
-| AP association | Wireless → Access Points | LWAP-A1, LWAP-A2 both Registered |
+| AP association | Wireless → Access Points | Record the actual AP list and registration status; association is not yet verified |
 | Config saved | Commands → Save Config | No unsaved changes |
 
 ---
@@ -285,7 +283,7 @@ Step 5: Save WLC Config
 > - **WPA2 not enabled, only WPA** — WPA-TKIP is deprecated; verify WPA2 + AES (CCMP) is selected, not WPA + TKIP
 > - **Forgetting to Save in WLC GUI** — WLC config is RAM-based; must use Commands → Save or config is lost on reboot
 > - **LWAPs not associating** — check: option 43 in DHCP pool, Management VLAN trunked to access switch, LWAP port on VLAN 99 access port
-> - **Chasing the Packet Tracer DHCP bug** — wireless clients getting 10.1.99.x IPs is a simulator limitation; it's not fixable in PT; move on
+> - **Assuming a configured DHCP pool proves wireless works** — verify the WLC interface mapping, CAPWAP registration, client VLAN path, and DHCP lease individually
 
 ---
 
@@ -307,6 +305,9 @@ Step 5: Save WLC Config
 
 ## 🛠️ Practice Tasks
 
+> [!CAUTION] Practice safely
+> AP and WLAN tests can interrupt wireless access. Use an isolated copy or agreed maintenance window, record the original settings, and restore them after each exercise.
+
 1. **LWAP discovery trace:** Remove `option 43` from the Management VLAN DHCP pool on R1. Reboot a LWAP. Observe it failing to associate (check WLC Monitor → AP count = 0). Re-add option 43 and verify the LWAP re-associates.
 
 2. **WLAN security comparison:** Create two WLANs — one with WPA + TKIP and one with WPA2 + AES. Connect a wireless client to each. Verify both work. Then explain why WPA-TKIP is considered insecure and should be avoided in production.
@@ -324,14 +325,14 @@ Step 5: Save WLC Config
 | Part | What Was Configured |
 |---|---|
 | P01 | Hostname, enable secret, local user, console login — every device |
-| P02 | EtherChannel (PAgP/LACP), trunking, DTP disabled, native VLAN, VTP, VLANs, access ports |
+| P02 | EtherChannel (PAgP/LACP), trunking, DTP disabled, native VLAN, VLANs, access ports; VTP is a concept example, not explicitly configured |
 | P03 | `ip routing`, SVIs, L3 EtherChannel, loopbacks, HSRP v2 (split active/standby) |
 | P04 | Rapid PVST+, STP root = HSRP active per VLAN, PortFast + BPDU Guard |
-| P05 | OSPF Area 0, passive interfaces, point-to-point links, dual default routes, floating static, `default-information originate` |
+| P05 | OSPF Area 0, passive interfaces, point-to-point links, default-route advertisement; IPv4 default learned by DHCP, static-route failover is a concept example |
 | P06 | DHCP pools + relay, NTP auth, SNMP, Syslog, FTP IOS upgrade, SSH v2 + ACL, static NAT + PAT, CDP→LLDP |
 | P07 | Extended ACL (both HSRP switches), Port Security (sticky, restrict), DHCP Snooping (no option 82), DAI |
 | P08 | `ipv6 unicast-routing`, three addressing methods (manual/EUI-64/link-local), IPv6 floating static |
-| P09 | WLC dynamic interface (VLAN 40), WLAN (WPA2-AES PSK), LWAP association, save config |
+| P09 | WLC/WLAN concepts and verification workflow; AP registration and client service remain unverified |
 
 > [!TIP] Jeremy's Grading Reminders
 > 1. `write memory` on **every device** after every part

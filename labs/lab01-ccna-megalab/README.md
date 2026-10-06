@@ -13,6 +13,15 @@
 
 The diagram shows the virtual lab topology across Office A and Office B. Both sites connect through a shared routed core (CSW1/CSW2) and edge router (R1). Each office has a distribution pair, access switches, and end hosts. Office A includes the Cisco vWLC; Office B includes WIN-SV1 for domain, DNS, NTP, and file services. DHCP is provided by R1 in the current live configuration.
 
+### Reading this lab
+
+1. Read the scenario and follow the diagram from R1 through the routed core to a site's distribution and access layers.
+2. Use [`addressing-table.md`](addressing-table.md) for the harvested IPv4/IPv6 addresses, VLAN purposes, and known live exceptions.
+3. Follow Parts 1–9 for the concepts and example commands. The examples explain the intended learning task; they are not all a transcript of the current lab.
+4. Compare examples with [`configs/`](configs/) before configuring a device. Configuration presence alone does not prove that a feature works end to end.
+
+The lab is a learning environment, not a production deployment. Some exercises describe a design target, while the harvested configs and notes record what is actually present. Each status below distinguishes documented configuration from behavior that remains unverified.
+
 ---
 
 ## Business Problem and Engineering Request
@@ -27,19 +36,19 @@ This is a virtual lab built with PNetLab and Cisco IOL/IOSv software images—no
 
 ## Build Requirements and Current Status
 
-The status column describes the recorded lab configuration, not a claim that every feature has been validated with production hardware. Known live-state limitations are called out below.
+The status column describes harvested configuration and verification evidence; it does not claim production readiness. Known live-state limitations are called out below.
 
-| Part | Topic | Engineering task | Status | Guide |
+| Part | Topic | Engineering task | Recorded status | Guide |
 |------|-------|----------|--------|-------|
-| 1 | Initial Device Setup | Hostnames, SSH, banners, local auth, CDP/LLDP | ✅ Implemented | [P01](../obsidian-notes/P01-Initial-Setup.md) |
-| 2 | VLANs & L2 EtherChannel | VLAN DB, VTP, 802.1Q trunking, PAgP EtherChannel | ✅ Implemented | [P02](../obsidian-notes/P02-VLANs-and-L2-EtherChannel.md) |
-| 3 | IP Addressing & L3 EtherChannel | IPv4 scheme, SVIs, HSRP, LACP L3 EtherChannel | ✅ Implemented | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
-| 4 | Spanning Tree | Rapid PVST+, STP root priorities, PortFast, BPDU Guard | ✅ Implemented | [P04](../obsidian-notes/P04-Rapid-Spanning-Tree.md) |
-| 5 | Routing | OSPFv2 Area 0, passive interfaces, default-information originate | ✅ Implemented | [P05](../obsidian-notes/P05-OSPF-and-Static-Routing.md) |
-| 6 | Network Services | DHCP, DNS, NTP (auth), SNMP, Syslog, FTP, PAT | ✅ Implemented | [P06](../obsidian-notes/P06-Network-Services.md) |
-| 7 | Security | Extended ACLs, port security, DHCP snooping, DAI | ✅ Implemented | [P07](../obsidian-notes/P07-Security.md) |
-| 8 | IPv6 | Dual-stack, static IPv6 routes, IPv6 ACL | ✅ Implemented | [P08](../obsidian-notes/P08-IPv6.md) |
-| 9 | Wireless | Cisco vWLC, WLAN/VLAN mapping, CAPWAP and WPA2-PSK concepts | ✅ Implemented | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
+| 1 | Initial Device Setup | Hostnames, SSH, local authentication, CDP/LLDP | Baseline configuration is documented; see harvested configs for device-specific settings | [P01](../obsidian-notes/P01-Initial-Setup.md) |
+| 2 | VLANs & L2 EtherChannel | VLAN membership, 802.1Q trunks, PAgP/LACP | VLANs, trunks, and distribution EtherChannels are present in the harvested configs; VTP use is not assumed | [P02](../obsidian-notes/P02-VLANs-and-L2-EtherChannel.md) |
+| 3 | IP Addressing & L3 EtherChannel | Routed links, SVIs, HSRP | IPv4/HSRP configuration is documented; Office A user SVIs on DSW-A2 are administratively down in the recorded config | [P03](../obsidian-notes/P03-IP-Addressing-L3-EtherChannel-HSRP.md) |
+| 4 | Spanning Tree | Rapid PVST+, root placement, PortFast, BPDU Guard | Configured settings are documented; verify operational state on the devices | [P04](../obsidian-notes/P04-Rapid-Spanning-Tree.md) |
+| 5 | Routing | OSPFv2 Area 0 and default-route advertisement | OSPF and default-information originate are configured; IPv4 default route uses DHCP on R1 Gi0/3, with no IPv4 floating static route in the harvested config | [P05](../obsidian-notes/P05-OSPF-and-Static-Routing.md) |
+| 6 | Network Services | DHCP, DNS, NTP, SNMP, Syslog, SSH, PAT | DHCP is configured on R1; DNS is provided by WIN-SV1; current NAT is PAT via Gi0/3. Consult P06 for verification gaps | [P06](../obsidian-notes/P06-Network-Services.md) |
+| 7 | Security | ACLs, port security, DHCP snooping, DAI | ACLs and L2 controls are configured unevenly; P07 records the observed scope and limitations | [P07](../obsidian-notes/P07-Security.md) |
+| 8 | IPv6 | IPv6 addressing and static routes | IPv6 is configured on R1 and the core switches only; distribution/access IPv6 and end-to-end IPv6 are not documented as verified | [P08](../obsidian-notes/P08-IPv6.md) |
+| 9 | Wireless | vWLC management, WLAN/VLAN concepts, CAPWAP | WLC management on VLAN 99 is confirmed; AP registration and wireless-client service are unverified | [P09](../obsidian-notes/P09-Wireless-LAN.md) |
 
 ---
 
@@ -91,17 +100,17 @@ Deviations from the original lab design, confirmed against harvested running con
 - **L3 Connectivity:** Static routing, PAT/NAT overload, IPv6 dual-stack (EUI-64), static IPv6 routes.
 
 **Switching & L2 Topology**
-- **VLANs:** 802.1Q trunking, VTP, Rapid PVST+ (STP).
+- **VLANs:** 802.1Q trunking, site-specific VLANs, Rapid PVST+ (STP); VTP is a study concept, not explicitly configured in the harvested configs.
 - **Link Aggregation:** EtherChannel (LACP & PAgP), L2 and L3 channels.
 - **Redundancy:** HSRP active/standby group distribution across DSW pairs.
 
 **Security & Network Services**
 - **Hardening:** SSHv2, Port Security (sticky MAC), Extended Named ACLs.
 - **L2 Security:** DHCP Snooping, Dynamic ARP Inspection (DAI).
-- **Infrastructure Services:** DHCP relay (`ip helper-address`), DNS, NTP (authenticated), SNMP v2c, Syslog, FTP.
+- **Infrastructure Services:** DHCP relay (`ip helper-address`), DNS, NTP authentication settings, SNMP v2c, Syslog. End-to-end service operation is not uniformly verified; an FTP-based IOS upgrade is a guide exercise, not a confirmed lab action.
 
 **Wireless & Troubleshooting**
-- **Cisco vWLC:** 8.7 version, WLAN/VLAN mapping, CAPWAP, WPA2-PSK.
+- **Cisco vWLC:** 8.7 version and VLAN 99 management confirmed; WLAN/VLAN mapping, CAPWAP registration, and WPA2 client service are not verified.
 - **Diagnostics:** Structured fault injection (8 scenarios), OSI-layer isolation methodology.
 
 ---

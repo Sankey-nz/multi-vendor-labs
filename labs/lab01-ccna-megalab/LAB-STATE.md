@@ -1,6 +1,6 @@
 # Lab 01 — Compact LLM Handoff
 
-> **Last updated:** 2026-09-21  
+> **Last updated:** 2026-10-06
 > **Prepared by:** Kiro  
 > **Purpose:** Fast context for the next LLM working in this directory.
 
@@ -205,20 +205,20 @@ Investigation History (2026-09-14):
 - **IP:** `10.5.0.4` (VLAN 30, Office B servers subnet)
 - **Hostname:** `srv.sankeylab.com`
 - **Domain:** `SANKEYLAB` — PDC, DNS, Time Server
-- **Credentials:** `SANKEYLAB\Sankey` / `Test123`
+- **Credentials:** Use the authorized local workflow; do not place passwords in this handoff.
 - **SSH:** Not available — OpenSSH not installed; HTTPS blocked by PNetLab MTU issue prevents download
 - **RDP:** Port 3389 open — connect via `xfreerdp` from Kali GUI or Windows RDP client
 - **SMB:** Port 445 open — use impacket tools from Kali:
 
 ```bash
 # Interactive shell
-impacket-smbexec SANKEYLAB/Sankey:Test123@10.5.0.4
+impacket-smbexec <domain>/<user>:<password>@10.5.0.4
 
 # Single command
-impacket-wmiexec SANKEYLAB/Sankey:Test123@10.5.0.4 "whoami"
+impacket-wmiexec <domain>/<user>:<password>@10.5.0.4 "whoami"
 
 # Domain/user info
-rpcclient -U SANKEYLAB/Sankey%Test123 10.5.0.4 -c srvinfo
+rpcclient -U <domain>/<user>%<password> 10.5.0.4 -c srvinfo
 ```
 
 - **DNS:** All devices point to `10.5.0.4` as name-server with domain `SankeyLab`
@@ -336,3 +336,18 @@ Extended the existing topology legend with compact, color-coded VLAN allocations
 The legend card was extended downward in the open upper-right canvas area to keep this site-specific detail together without covering office links or device labels. Backup before edit: `/opt/unetlab/labs/multivendorlabs.unl.backup-20261004-2255` (SHA-256: `9d5e4a4541026bd7a698a6208d35d85d7eeca287141b67ab7fc207dc4704c0cc`). The lab XML parses successfully; the 20 nodes and 38 networks/links are unchanged. No VLAN configuration was modified. Refresh PNetLab to view the summary. Signed: Copilot.
 
 The updated live topology was captured as `topology/Screenshot 2026-10-04 23011400.png` and copied over the repository's `topology/topology.png` reference image. The supplied capture is 1693 x 1080 and includes the VLAN legend without the PNetLab footer controls. The prior `topology.png` was preserved outside the repository as `topology-before-vlan-summary-20261004.png` in the local temp directory. Signed: Copilot.
+
+### Documentation Audit — 2026-10-06
+
+Reviewed the repository entry points and Lab 01 Parts 1–9 against the harvested configs for recruit readability and factual consistency. Updated the study guides to mark teaching examples separately from live state, corrected stale addressing/HSRP examples and routing claims, refreshed the Office B access-switch security findings, clarified the VTP and wireless validation limits, and removed hard-coded example credentials. No network-device configuration was changed.
+
+Current discrepancies and validation limits documented for the next operator:
+
+- R1's `A-Mgmt` DHCP pool advertises `10.5.0.4` as its default router; the addressing plan lists `10.0.0.1`.
+- R1's IPv4 default route is learned by DHCP on Gi0/3, and PAT uses Gi0/3; no IPv4 floating static default or static NAT is present in the harvested config.
+- IPv6 uses static primary/floating defaults; the primary is via Gi0/3 and the floating route via Gi0/2.
+- DSW-A2's VLAN 10, 20, and 40 SVIs are administratively down. Configured HSRP does not prove failover behavior.
+- Office B access-switch configs are distinct; ASW-B2 is configured as `AWS-B2`. ASW-B3 trusts DAI on a server-facing port, bypassing validation there.
+- WLC management is `10.0.0.7/28` on VLAN 99; AP registration and wireless-client service remain unverified.
+
+`git diff --check` passed. Changes are local and uncommitted. Signed: Copilot.

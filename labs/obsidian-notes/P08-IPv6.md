@@ -1,7 +1,7 @@
 # P08 — IPv6
 
 > [!NOTE] Part Summary
-> **Topic:** Enable IPv6 routing on R1, CSW1, and CSW2 using three different address assignment methods, and configure dual IPv6 default routes mirroring the IPv4 ISP failover setup
+> **Topic:** Enable IPv6 routing on R1, CSW1, and CSW2, review three address assignment methods, and inspect the configured IPv6 default routes
 > **NetBridge Scenario:** The client's infrastructure needs to support IPv6 alongside IPv4 (dual-stack). Part 8 is a light touch — IPv6 is only enabled on the core layer (R1, CSW1, CSW2) for this lab, demonstrating three different ways to assign IPv6 addresses.
 > **Key Concepts:** `ipv6 unicast-routing`, global unicast address, EUI-64, link-local only (`ipv6 enable`), IPv6 floating static route, AD
 > **Devices involved:** R1, CSW1, CSW2
@@ -209,17 +209,16 @@ interface Port-channel1
 ### Section 4 — IPv6 Default Routes (Dual ISP Failover)
 
 > [!NOTE] Key Concept
-> Mirrors the IPv4 floating static setup from Part 5 — primary route via ISP A (lower AD), floating backup via ISP B (higher AD).
+> In the harvested IPv6 config, R1 has a primary default route via Gi0/3 (interface description `ISP-B`) and a floating backup via Gi0/2 (AD 2). This is **not** the live IPv4 route pattern; the IPv4 default is learned by DHCP on Gi0/3.
 
 ```
-! === R1 — IPv6 Default Routes ===
+! === R1 — IPv6 default routes from the harvested config ===
 
-! Primary via ISP A — recursive (next-hop IPv6 address only)
-ipv6 route ::/0 2001:db8:a:1::1          ! ::/0 = IPv6 default route (like 0.0.0.0/0)
+! Primary via Gi0/3 (description: ISP-B)
+ipv6 route ::/0 2001:DB8:A::1
 
-! Floating backup via ISP B — fully specified (interface + next-hop) + higher AD
-ipv6 route ::/0 GigabitEthernet0/0/1 2001:db8:b:1::1 2
-!                                                      ↑ AD = 2 (floating)
+! Floating backup via Gi0/2 (static IPv4 interface)
+ipv6 route ::/0 GigabitEthernet0/2 2001:DB8:B::1 2
 ```
 
 **IPv4 vs. IPv6 default route comparison:**
@@ -238,72 +237,40 @@ ipv6 route ::/0 GigabitEthernet0/0/1 2001:db8:b:1::1 2
 
 ---
 
-## 🖥️ NetBridge Applied — Full Config Block
+## Live Interface and Route Reference
 
-> [!TIP] R1 — Complete Part 8 Configuration
+> [!NOTE] R1 — Selected harvested IPv6 configuration
 
 ```
-! === R1 — IPv6 ===
-
-! Enable IPv6 routing
 ipv6 unicast-routing
 
-! LAN interface — full manual address
-interface GigabitEthernet0/1/0
- ipv6 address 2001:db8:0:1::1/64
- no shutdown
- exit
+interface GigabitEthernet0/0
+ ipv6 address 2001:DB8:A2::/64 eui-64
+interface GigabitEthernet0/1
+ ipv6 address 2001:DB8:A1::/64 eui-64
+interface GigabitEthernet0/2
+ ipv6 address 2001:DB8:B::2/64
+interface GigabitEthernet0/3
+ ipv6 address 2001:DB8:A::2/64
 
-! WAN interface ISP A — full manual
-interface GigabitEthernet0/0/0
- ipv6 address 2001:db8:a:1::2/64
- no shutdown
- exit
-
-! WAN interface ISP B — link-local only
-interface GigabitEthernet0/0/1
- ipv6 enable
- no shutdown
- exit
-
-! Loopback0 — full manual
-interface Loopback0
- ipv6 address 2001:db8:0:ff::1/128
- exit
-
-! Dual IPv6 default routes
-ipv6 route ::/0 2001:db8:a:1::1          ! primary via ISP A
-ipv6 route ::/0 GigabitEthernet0/0/1 2001:db8:b:1::1 2  ! floating via ISP B
-
-write memory
+ipv6 route ::/0 2001:DB8:A::1
+ipv6 route ::/0 GigabitEthernet0/2 2001:DB8:B::1 2
 ```
 
-> [!TIP] CSW1 — Complete Part 8 Configuration
+> [!NOTE] CSW1 and CSW2 — selected harvested configuration
 
 ```
-! === CSW1 — IPv6 ===
-
-ipv6 unicast-routing
-
-! Uplink to R1 — EUI-64
-interface GigabitEthernet1/0/1
- ipv6 address 2001:db8:0:2::/64 eui-64
- no shutdown
- exit
-
-! L3 EtherChannel to CSW2 — link-local only
+! CSW1
+interface Ethernet0/2
+ ipv6 address 2001:DB8:A1::/64 eui-64
 interface Port-channel1
  ipv6 enable
- no shutdown
- exit
 
-! Downlinks to distribution — full manual
-interface GigabitEthernet1/0/3
- ipv6 address 2001:db8:0:3::1/64
- no shutdown
- exit
-
-write memory
+! CSW2
+interface Ethernet0/2
+ ipv6 address 2001:DB8:A2::/64 eui-64
+interface Port-channel1
+ ipv6 enable
 ```
 
 ---
@@ -315,8 +282,8 @@ write memory
 | `show ipv6 interface brief` | All IPv6 interfaces with addresses and `up/up` |
 | `show ipv6 route` | Connected, local, and static routes; `::/0` default |
 | `show ipv6 route static` | Primary default (lower AD) and floating (if primary down) |
-| `ping ipv6 2001:db8:0:2::1` | IPv6 reachability test |
-| `show ipv6 interface Gi0/1/0` | Full address including EUI-64 generated portion |
+| `show ipv6 interface brief` | Configured addresses and operational state on the device |
+| `show ipv6 interface Gi0/0` | Full address including EUI-64 generated portion |
 
 ---
 
@@ -353,6 +320,6 @@ write memory
 
 2. **IPv6 routing verification:** After Part 8 config, `ping ipv6` from R1 to CSW1's GUA. Then `ping ipv6` from CSW1 to CSW2 using link-local (remember to specify the exit interface for link-local: `ping ipv6 fe80::1 Gi1/0/1`).
 
-3. **IPv6 floating static failover:** Verify `show ipv6 route` shows `::/0` via ISP A. Shut ISP A interface on R1. Verify the floating route via ISP B activates. Restore the interface and verify failback.
+3. **IPv6 floating static failover (isolated exercise):** Inspect `show ipv6 route` and identify the primary via `2001:DB8:A::1` and floating via Gi0/2. Only test failover in an isolated lab window: the primary uses Gi0/3, which is also the live IPv4 DHCP/default-route interface. Restore the interface after testing.
 
-4. **Dual-stack comparison:** On R1, compare `show ip route` and `show ipv6 route` side by side. Identify the equivalent entries: connected routes, static defaults, and floating statics. Note how the structures mirror each other.
+4. **Dual-stack comparison:** On R1, compare `show ip route` and `show ipv6 route`. The IPv4 default is DHCP-learned; the IPv6 defaults are static, including an AD 2 floating route. Compare the different route sources rather than assuming the designs mirror each other.

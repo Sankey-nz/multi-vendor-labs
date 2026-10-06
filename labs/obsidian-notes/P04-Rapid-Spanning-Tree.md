@@ -2,9 +2,12 @@
 
 > [!NOTE] Part Summary
 > **Topic:** Switch from classic PVST+ to Rapid PVST+, align STP root with HSRP active router, and protect end-host ports with PortFast + BPDU Guard
-> **NetBridge Scenario:** Classic STP has 30–50 second convergence times — unacceptable when a link fails. NetBridge upgrades all switches to Rapid PVST+ for sub-second convergence, then aligns STP root placement with the HSRP active router so traffic takes the most efficient path to its L3 gateway.
+> **NetBridge Scenario:** The switching topology uses Rapid PVST+ on access and distribution switches, with STP root placement aligned to configured HSRP preference. Convergence depends on the topology and failure; verify actual behavior rather than assuming a fixed recovery time.
 > **Key Concepts:** Rapid PVST+, STP root election, priority values (multiples of 4096), PortFast, BPDU Guard, STP/HSRP alignment
-> **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2
+> **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2, ASW-B3
+
+> [!IMPORTANT] Live-state note
+> Rapid PVST+ and root priorities are configured on the distribution and access switches. The core switches use PVST mode but are routed at Layer 3, not part of the switching STP topology. DSW-A2's VLAN 10, 20, and 40 SVIs are administratively down, so configured STP/HSRP alignment does not prove operational gateway failover. PortFast/BPDU Guard coverage varies by access port; verify each interface.
 
 ---
 
@@ -34,7 +37,7 @@ Host → DSW-A1 directly (STP root AND HSRP active) → router
 ### Section 1 — Enable Rapid PVST+
 
 > [!NOTE] Key Concept
-> The default STP mode in Packet Tracer is classic **PVST+** (802.1D per-VLAN). **Rapid PVST+** (802.1w per-VLAN) converges in under a second using new port roles and states instead of waiting through the 15-second Listening + Learning timers.
+> The default STP mode depends on the platform and image; verify it with `show spanning-tree` before changing it. **Rapid PVST+** uses the rapid spanning-tree protocol per VLAN and can converge faster than classic PVST+, depending on topology and failure type.
 
 **Verify the current mode first:**
 ```
@@ -54,7 +57,7 @@ spanning-tree mode rapid-pvst
 
 | Feature | Classic PVST+ (802.1D) | Rapid PVST+ (802.1w) |
 |---|---|---|
-| Convergence | 30–50 seconds | < 1 second |
+| Convergence | Can take tens of seconds | Typically faster; actual convergence depends on topology and failure |
 | Port states | Blocking/Listening/Learning/Forwarding/Disabled | Discarding/Learning/Forwarding |
 | BPDUs | Only root sends; others relay | Every switch sends its own BPDUs |
 | Link types | All shared | Point-to-point (full-duplex) |
@@ -70,9 +73,9 @@ spanning-tree mode rapid-pvst
 
 | Priority | Meaning |
 |---|---|
-| 0 | Guaranteed root bridge for this VLAN |
-| 4096 | Backup root (second lowest) |
-| 8192 | Third lowest |
+| 0 | Lowest configurable priority; tie-break uses Bridge ID |
+| 4096 | Common backup-root priority |
+| 8192 | Higher-priority candidate |
 | 32768 | Default (if not configured) |
 
 ```
@@ -96,16 +99,16 @@ spanning-tree vlan 99 priority 4096
 
 **STP/HSRP alignment table for Office A:**
 
-| VLAN | HSRP Active | STP Root | HSRP Standby | STP Backup Root |
+| VLAN | Configured HSRP preference | Configured STP root | Other HSRP preference | Configured STP backup |
 |---|---|---|---|---|
-| 10 (Mgmt) | DSW-A1 | DSW-A1 (priority 0) | DSW-A2 | DSW-A2 (priority 4096) |
+| 10 (User/data) | DSW-A1 | DSW-A1 (priority 0) | DSW-A2 | DSW-A2 (priority 4096) |
 | 20 (Staff) | DSW-A2 | DSW-A2 (priority 0) | DSW-A1 | DSW-A1 (priority 4096) |
-| 40 (Servers) | DSW-A2 | DSW-A2 (priority 0) | DSW-A1 | DSW-A1 (priority 4096) |
+| 40 (Wi-Fi clients) | DSW-A2 | DSW-A2 (priority 0) | DSW-A1 | DSW-A1 (priority 4096) |
 | 99 (Mgmt) | DSW-A1 | DSW-A1 (priority 0) | DSW-A2 | DSW-A2 (priority 4096) |
 
 > [!WARNING] Exam Flags 🎯
 > - STP priority MUST be a multiple of 4096 — any other value is rejected with an error
-> - Priority 0 = lowest possible = always wins root election (unless another switch also has 0, then MAC breaks the tie)
+> - Priority 0 is the lowest configurable value; when priorities tie, the Bridge ID (including MAC address) breaks the tie
 > - `spanning-tree vlan X root primary` is a macro that automatically sets priority to 24576 (or lower if needed) — less precise than setting 0 explicitly
 
 ---
@@ -177,7 +180,10 @@ errdisable recovery interval 30
 
 ---
 
-## 🖥️ NetBridge Applied — Full Config Block
+## 🧪 Configuration Examples
+
+> [!NOTE]
+> These are templates, not complete harvested configurations. Confirm the actual interface names and connected device before applying PortFast or BPDU Guard.
 
 > [!TIP] ASW-A1 — Complete Part 4 Configuration
 
@@ -252,10 +258,10 @@ write memory
 
 | Concept | What It Does | Exam Tip |
 |---|---|---|
-| Rapid PVST+ | Per-VLAN STP with sub-second convergence | `spanning-tree mode rapid-pvst`; verify with `show spanning-tree` |
+| Rapid PVST+ | Per-VLAN rapid spanning-tree | `spanning-tree mode rapid-pvst`; verify with `show spanning-tree` |
 | Root bridge | Switch elected as centre of STP topology | Lowest Bridge Priority + MAC wins |
-| `priority 0` | Guarantees root bridge election | Must be multiple of 4096 |
-| `priority 4096` | Guarantees backup root | One increment above 0 |
+| `priority 0` | Lowest configurable bridge priority | MAC address breaks ties |
+| `priority 4096` | Common backup-root priority | Confirm it is the next-lowest priority in the VLAN |
 | STP/HSRP alignment | Same switch is STP root and HSRP active per VLAN | Prevents suboptimal traffic paths |
 | PortFast | Skip Listening/Learning → instant forwarding | Only on host-facing ports; never on switch-to-switch links |
 | `portfast trunk` | PortFast on a trunk port facing a non-switch | Used on WLC uplink |
@@ -265,6 +271,9 @@ write memory
 ---
 
 ## 🛠️ Practice Tasks
+
+> [!CAUTION] Practice safely
+> Connecting switches, forcing BPDU Guard, or changing STP priorities can interrupt service. Use an isolated copy or agreed maintenance window, confirm recovery access, and restore the prior configuration after each exercise.
 
 1. **STP mode verification:** Before changing anything, run `show spanning-tree` on an access switch. Identify the mode (look for `ieee` = PVST+ or `rstp` = Rapid PVST+). Change to Rapid PVST+ and verify the output changes.
 

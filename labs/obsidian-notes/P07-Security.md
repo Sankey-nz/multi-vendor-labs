@@ -4,7 +4,7 @@
 > **Topic:** Restrict inter-office traffic with an extended ACL, protect access ports with Port Security, and deploy DHCP Snooping + Dynamic ARP Inspection to prevent network attacks
 > **NetBridge Scenario:** The network is functional but open — any PC in Office A can freely access Office B's servers, and nothing stops a rogue DHCP server or ARP poisoning attack. Part 7 locks this down: ACLs control inter-office traffic, Port Security limits which MACs can connect, and DHCP Snooping + DAI protect the switching fabric from common L2 attacks.
 > **Key Concepts:** Extended ACLs, ACL placement, Port Security (sticky MAC), DHCP Snooping, DAI, trust ports
-> **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2
+> **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2, ASW-B3
 
 ---
 
@@ -50,7 +50,7 @@ DAI:
 >
 > **DSW-A2** — identical ACL, also applied `ip access-group OfficeA_to_OfficeB in` on Vlan10. ✅
 >
-> **⚠️ Deviation — subnet addressing:** The note's planned config uses `10.1.10.0/24` → `10.2.0.0/16`. The live ACL uses `10.1.0.0/24` (Office A VLAN 10) → `10.3.0.0/24` (Office B VLAN 10). The actual lab addressing differs from the guide example — the live subnets are `/24` per VLAN, not the guide's example ranges. Policy intent is identical; only the subnets differ to match the real topology.
+> The live policy matches Office A VLAN 10 (`10.1.0.0/24`) to Office B VLAN 10 (`10.3.0.0/24`); use these current subnets rather than older example ranges.
 >
 > ---
 >
@@ -160,9 +160,15 @@ DAI:
 >
 > ---
 >
-> ### ASW-B1, ASW-B2, ASW-B3 — Capture Issue
+> ### ASW-B1, ASW-B2, ASW-B3 — Office B Findings
 >
-> **⚠️ Config capture problem:** The files `ASW-B1.txt`, `ASW-B2.txt`, and `ASW-B3.txt` (all dated 2026-09-20) contain the running-config of **DSW-B1** (a distribution switch), not the access layer switches. Hostname in all three files is `DSW-B1` with no port-security, DHCP Snooping, or DAI. These configs were likely captured incorrectly (wrong terminal session saved to the wrong file). **The security posture of Office B access switches cannot be verified from the current captures.** Re-harvest required.
+> The current files contain distinct Office B access-switch configurations, so the previous capture warning is obsolete.
+>
+> - **ASW-B1:** DHCP Snooping and DAI cover VLANs 10, 20, 30, and 99; Ethernet0/0 and Ethernet0/1 are trusted uplinks. Ethernet0/2 has port security with `restrict` and sticky learning.
+> - **ASW-B2:** Same snooping/DAI VLANs and trusted uplinks; Ethernet0/2 has port security with `restrict` and sticky learning. The configured hostname is `AWS-B2` (A/S transposed).
+> - **ASW-B3:** Same snooping/DAI VLANs and trusted uplinks. Ethernet0/2 is a server-facing VLAN 30 port with voice VLAN 20, maximum five sticky MACs, and is also trusted for DAI. Trusting a host-facing port bypasses DAI validation and should be reviewed. Ethernet0/3 has port security with `restrict` and sticky learning but is shut down.
+>
+> These configs confirm command presence only; verify the snooping binding table, DAI counters, and actual host behavior on the running devices.
 >
 > ---
 >
@@ -173,9 +179,9 @@ DAI:
 > | ASW-A1 | Partial (trunk port + WLC trunk — not host ports) | restrict (Et0/1) / **shutdown default** (Et0/2) | 10,20,40,99 ✅ | 10,20,40,99 ✅ | src-mac dst-mac ip ✅ |
 > | ASW-A2 | Et0/2 only (access port) ✅ | restrict ✅ | 10,20,40,99 ✅ | 10,20,40,99 ✅ | src-mac dst-mac ip ✅ |
 > | ASW-A3 | Et0/3 only (shutdown port) ⚠️ | restrict | 10,20,40,99 ✅ | 10,20,40,99 ✅ | src-mac dst-mac ip ✅ |
-> | ASW-B1 | ❌ not verified (wrong capture) | — | ❌ not verified | ❌ not verified | — |
-> | ASW-B2 | ❌ not verified (wrong capture) | — | ❌ not verified | ❌ not verified | — |
-> | ASW-B3 | ❌ not verified (wrong capture) | — | ❌ not verified | ❌ not verified | — |
+> | ASW-B1 | Ethernet0/2 (restrict, sticky) | restrict | 10,20,30,99 ✅ | 10,20,30,99 ✅ | src-mac dst-mac ip ✅ |
+> | ASW-B2 (`AWS-B2`) | Ethernet0/2 (restrict, sticky) | restrict | 10,20,30,99 ✅ | 10,20,30,99 ✅ | src-mac dst-mac ip ✅ |
+> | ASW-B3 | Ethernet0/2 (max 5, sticky; default violation mode) and shut Ethernet0/3 | Mixed | 10,20,30,99 ✅ | 10,20,30,99 ✅ | src-mac dst-mac ip ✅; Et0/2 trusted |
 > | DSW-A1 | N/A | N/A | N/A | N/A | ACL OfficeA_to_OfficeB on Vlan10 in ✅ |
 > | DSW-A2 | N/A | N/A | N/A | N/A | ACL OfficeA_to_OfficeB on Vlan10 in ✅ |
 
@@ -198,8 +204,8 @@ DAI:
 ! (both must have it — either could be the HSRP active gateway)
 
 ip access-list extended OfficeA_to_OfficeB
- permit icmp 10.1.10.0 0.0.0.255 10.2.10.0 0.0.0.255   ! allow ping A→B
- deny ip 10.1.10.0 0.0.0.255 10.2.0.0 0.0.255.255       ! block all else A→B
+ permit icmp 10.1.0.0 0.0.0.255 10.3.0.0 0.0.0.255     ! allow ping A VLAN 10 → B VLAN 10
+ deny ip 10.1.0.0 0.0.0.255 10.3.0.0 0.0.0.255         ! block other A VLAN 10 → B VLAN 10 traffic
  permit ip any any                                         ! permit everything else
  exit
 
@@ -366,8 +372,8 @@ interface GigabitEthernet0/2
 ! === DSW-A1 — Extended ACL (also configure identically on DSW-A2) ===
 
 ip access-list extended OfficeA_to_OfficeB
- permit icmp 10.1.10.0 0.0.0.255 10.2.10.0 0.0.0.255
- deny ip 10.1.10.0 0.0.0.255 10.2.0.0 0.0.255.255
+ permit icmp 10.1.0.0 0.0.0.255 10.3.0.0 0.0.0.255
+ deny ip 10.1.0.0 0.0.0.255 10.3.0.0 0.0.0.255
  permit ip any any
  exit
 
@@ -470,6 +476,9 @@ write memory
 ---
 
 ## 🛠️ Practice Tasks
+
+> [!CAUTION] Practice safely
+> ACL, DHCP Snooping, and DAI experiments can block management or host traffic. Use an isolated copy or agreed change window, confirm console/recovery access, and restore the known-good config after testing.
 
 1. **ACL testing:** Configure the OfficeA_to_OfficeB ACL on DSW-A1. From an Office A PC, ping an Office B PC — should succeed. Try HTTP to an Office B server — should fail. Check `show ip access-lists` hit counts to confirm the ACL is working.
 

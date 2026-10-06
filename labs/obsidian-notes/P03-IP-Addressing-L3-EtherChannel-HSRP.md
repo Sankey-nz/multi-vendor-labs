@@ -11,7 +11,10 @@
 ## 🗺️ Big Picture
 
 > [!TIP] Mental Model
-> Part 3 turns the switches from dumb L2 forwarders into proper routers. HSRP gives each subnet a single virtual gateway IP — hosts never need to know which physical switch is active.
+> Part 3 configures routed interfaces on multilayer switches. HSRP provides virtual gateway addresses so hosts do not need to track which distribution switch is forwarding.
+
+> [!IMPORTANT] Live-state note
+> Use [`addressing-table.md`](../lab01-ccna-megalab/addressing-table.md) as the source of truth for configured addresses and HSRP groups. This guide includes teaching examples, not a transcript. DSW-A2's VLAN 10, 20, and 40 SVIs are administratively shut down in the harvested config, so configured HSRP is not proof of operational failover.
 
 ```
 Hosts in VLAN 10 → default gateway = HSRP Virtual IP (e.g. 10.1.0.1)
@@ -48,15 +51,16 @@ ip routing
 ### Section 2 — R1 Interface Configuration
 
 > [!NOTE] Key Concept
-> R1 has two WAN links (DHCP from ISPs) and a LAN-facing link to the core. A **loopback interface** provides a stable, always-up identity address used as the OSPF router ID and DHCP relay target.
+> R1 has two WAN links: Gi0/2 uses static IPv4 addressing and Gi0/3 receives IPv4 by DHCP. Two routed links connect R1 to the core. A **loopback interface** provides a stable address used as the OSPF router ID and DHCP relay target.
 
 ```
-! WAN interfaces — get IP from ISP via DHCP
+! Gi0/3 — IPv4 address learned by DHCP from the upstream network
 interface GigabitEthernet0/3
  ip address dhcp
  no shutdown
  exit
 
+! Gi0/2 — static IPv4 address in this lab
 interface GigabitEthernet0/2
  ip address 203.0.113.6 255.255.255.252
  no shutdown
@@ -146,13 +150,15 @@ interface Vlan40
  exit
 
 interface Vlan99
- ip address 10.0.0.2 255.255.255.0
+ ip address 10.0.0.2 255.255.255.240
  no shutdown
  exit
 
-! DSW-A2 gets .3 on the same subnets
-! DSW-B1/B2 get IPs on their own subnets (e.g. 10.3.x.x for Office B Mgmt)
+! DSW-A2 uses another host address in the Office A VLAN subnets.
+! Office B uses separate subnets; see addressing-table.md.
 ```
+
+This is an illustrative SVI configuration. In the harvested state, DSW-A2's VLAN 10, 20, and 40 SVIs are administratively shut down; VLAN 99 remains configured.
 
 ---
 
@@ -162,7 +168,7 @@ interface Vlan99
 > **HSRP** (**Hot Standby Router Protocol**) creates a **virtual IP** shared between two routers. Hosts use the virtual IP as their default gateway — HSRP decides which physical router actually handles traffic. Only one router is **active** at a time; the other is **standby**.
 
 **HSRP key concepts:**
-- **Virtual IP** — the gateway IP hosts are configured with (e.g. `10.1.10.1`)
+- **Virtual IP** — the gateway IP hosts are configured with (e.g. Office A VLAN 10 uses `10.1.0.1`)
 - **Active router** — currently forwarding traffic; elected by highest priority (default 100)
 - **Standby router** — monitoring; takes over if active fails
 - **Preempt** — active router reclaims its role when it comes back after a failure
@@ -173,28 +179,28 @@ interface Vlan99
 
 interface Vlan10
  standby version 2
- standby 1 ip 10.1.10.1            ! virtual IP — what hosts use as gateway
- standby 1 priority 105            ! higher than default 100 → wins election
- standby 1 preempt                 ! reclaim active when recovered
+ standby 2 ip 10.1.0.1             ! group 2; Office A VLAN 10 gateway
+ standby 2 priority 105            ! higher than default 100 → wins election
+ standby 2 preempt                 ! reclaim active when recovered
  exit
 
 interface Vlan99
  standby version 2
- standby 2 ip 10.1.99.1
- standby 2 priority 105
- standby 2 preempt
+ standby 1 ip 10.0.0.1             ! group 1; Office A management gateway
+ standby 1 priority 105
+ standby 1 preempt
  exit
 
 ! DSW-A1 is STANDBY for VLANs 20 and 40
 interface Vlan20
  standby version 2
- standby 3 ip 10.1.20.1
+ standby 3 ip 10.2.0.1
  ! No priority bump — default 100 = standby
  exit
 
 interface Vlan40
  standby version 2
- standby 4 ip 10.1.40.1
+ standby 4 ip 10.6.0.1
  exit
 
 
@@ -202,14 +208,14 @@ interface Vlan40
 
 interface Vlan20
  standby version 2
- standby 3 ip 10.1.20.1
+ standby 3 ip 10.2.0.1
  standby 3 priority 105
  standby 3 preempt
  exit
 
 interface Vlan40
  standby version 2
- standby 4 ip 10.1.40.1
+ standby 4 ip 10.6.0.1
  standby 4 priority 105
  standby 4 preempt
  exit
@@ -217,23 +223,23 @@ interface Vlan40
 ! DSW-A2 is STANDBY for VLANs 10 and 99 (no priority bump)
 interface Vlan10
  standby version 2
- standby 1 ip 10.1.10.1
+ standby 2 ip 10.1.0.1
  exit
 
 interface Vlan99
  standby version 2
- standby 2 ip 10.1.99.1
+ standby 1 ip 10.0.0.1
  exit
 ```
 
 **HSRP load-balancing via split active/standby:**
 
-| VLAN | HSRP Group | Active | Standby |
+| Office A VLAN | HSRP Group | Configured active preference | Configured standby preference |
 |---|---|---|---|
-| 10 Mgmt | 1 | DSW-A1 (105) | DSW-A2 (100) |
-| 20 Staff | 3 | DSW-A2 (105) | DSW-A1 (100) |
-| 40 Servers | 4 | DSW-A2 (105) | DSW-A1 (100) |
-| 99 Mgmt | 2 | DSW-A1 (105) | DSW-A2 (100) |
+| 10 User/data | 2 | DSW-A1 (105) | DSW-A2 (100; SVI shut in recorded config) |
+| 20 Staff/voice | 3 | DSW-A2 (105; SVI shut in recorded config) | DSW-A1 (100) |
+| 40 Wi-Fi clients | 4 | DSW-A2 (105; SVI shut in recorded config) | DSW-A1 (100) |
+| 99 Network management | 1 | DSW-A1 (105) | DSW-A2 (100) |
 
 > [!WARNING] Exam Flags 🎯
 > - HSRP virtual IP must be in the same subnet as the SVI IPs but NOT the same as any physical SVI IP
@@ -243,7 +249,10 @@ interface Vlan99
 
 ---
 
-## 🖥️ NetBridge Applied — Full Config Block
+## 🧪 DSW-A1 Configuration Example
+
+> [!NOTE]
+> This is an illustrative configuration, not a full transcript. Compare device-specific interface state with the harvested configs before applying it.
 
 > [!TIP] DSW-A1 — Complete Part 3 Configuration
 
@@ -272,9 +281,9 @@ interface Vlan10
  ip address 10.1.0.2 255.255.255.0
  no shutdown
  standby version 2
- standby 1 ip 10.1.0.1
- standby 1 priority 105
- standby 1 preempt
+ standby 2 ip 10.1.0.1
+ standby 2 priority 105
+ standby 2 preempt
  exit
 
 interface Vlan20
@@ -292,12 +301,12 @@ interface Vlan40
  exit
 
 interface Vlan99
- ip address 10.0.0.2 255.255.255.0
+ ip address 10.0.0.2 255.255.255.240
  no shutdown
  standby version 2
- standby 2 ip 10.0.0.1
- standby 2 priority 105
- standby 2 preempt
+ standby 1 ip 10.0.0.1
+ standby 1 priority 105
+ standby 1 preempt
  exit
 
 write memory
@@ -314,7 +323,7 @@ write memory
 | `show standby vlan 10` | Priority 105 + preempt on active switch |
 | `show etherchannel summary` | Po1 shows `RU` (Layer 3, in use) on L3 EtherChannel |
 | `show ip route` | Connected routes for all SVIs present |
-| `ping 10.1.10.1` | Ping the HSRP virtual IP from the switch itself |
+| `ping 10.1.0.1` | Test reachability to the Office A VLAN 10 virtual IP |
 
 ---
 
@@ -323,7 +332,7 @@ write memory
 > [!WARNING] Watch Out
 > - **Forgetting `ip routing`** — SVIs won't route; hosts can reach their SVI but nothing beyond
 > - **`no switchport` on wrong ports** — only use on uplink/EtherChannel member ports; access/trunk ports to hosts should remain switchports
-> - **HSRP virtual IP in wrong subnet** — virtual IP must be in the same /24 as the SVI physical IPs
+> - **HSRP virtual IP in wrong subnet** — it must be in the same subnet as the SVI addresses; VLAN 99 uses `/28` here, while user VLANs use `/24`
 > - **Forgetting `preempt`** — without it, the standby switch becomes active after a failover and stays active permanently even after the original active recovers
 > - **HSRP group number mismatch** — both switches must use the same group number for the same VLAN; mismatched groups = two active routers = split-brain
 > - **Not aligning HSRP with STP root** — covered in Part 4; skipping this causes traffic to take an inefficient L2 path to the gateway

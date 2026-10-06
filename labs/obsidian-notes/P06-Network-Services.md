@@ -1,25 +1,28 @@
 # P06 — Network Services (DHCP, DNS, NTP, SNMP, SSH, NAT)
 
 > [!NOTE] Part Summary
-> **Topic:** Configure all enterprise network services — DHCP, DNS, NTP, SNMP/Syslog, FTP-based IOS upgrade, SSH hardening, and NAT for internet access
-> **NetBridge Scenario:** The physical and logical network is up. Now it needs services — hosts need automatic IP assignment (DHCP), time synchronisation (NTP), management monitoring (SNMP/Syslog), secure remote access (SSH), and internet connectivity (NAT). This is the longest part of the lab.
+> **Topic:** Study DHCP, DNS, NTP, SNMP/Syslog, SSH, NAT, and service verification.
+> **NetBridge Scenario:** This guide combines concepts and example configurations. Several described services and examples are not present in the harvested lab configuration.
 > **Key Concepts:** DHCP pools, excluded addresses, relay (`ip helper-address`), NTP authentication, SNMP community strings, SSH v2, ACL + VTY, static NAT, dynamic PAT, NAT inside/outside
-> **Devices involved:** R1, DSW-A1, DSW-A2, DSW-B1, DSW-B2, SRV1 (DNS), WLC1
+> **Devices involved:** R1, DSW-A1, DSW-A2, DSW-B1, DSW-B2, WIN-SV1 (DNS), WLC1
+
+> [!IMPORTANT] Compare with the running configuration before using commands
+> The harvested configs show DHCP pools on R1, DNS service at WIN-SV1 (`10.5.0.4`), an SNMP read-only community, syslog to `10.5.0.4`, and PAT through R1 Gi0/3. They do **not** establish that NTP is synchronized, an IOS image was upgraded by FTP, or static NAT exists. R1's `A-Mgmt` DHCP pool currently advertises `10.5.0.4` as its default router; the addressing table identifies `10.0.0.1` as the intended VLAN 99 gateway. Treat this as a live configuration discrepancy, not as an instruction to copy.
 
 ---
 
 ## 🗺️ Big Picture
 
 > [!TIP] Mental Model
-> Part 6 is the "services layer" — all the things that make a network actually usable. Each service follows the same shape: configure the server (R1 or SRV1), configure the clients (switches/routers point to the server), and verify end-to-end.
+> Part 6 is the "services layer" — all the things that make a network usable. For each service, identify the actual server, configure clients where needed, then verify end-to-end behavior.
 
 ```
-DHCP:    R1 pools → relay on SVIs (ip helper-address) → hosts get IPs
-NTP:     R1 authoritative → all devices sync to R1 with auth key
-SNMP:    All devices → community string → SRV1 (SNMP manager)
-Syslog:  All devices → logging SRV1 IP → SRV1 collects logs
-SSH:     RSA 4096-bit → SSHv2 only → ACL restricts source IPs → VTY lines
-NAT:     Static NAT for SRV1 (fixed public IP) + PAT for all others
+DHCP:    R1 pools → relays on SVIs → intended host address assignment
+DNS:     WIN-SV1 (10.5.0.4)
+SNMP:    Community configured; manager polling not verified
+Syslog:  Configured to send to 10.5.0.4; receipt not verified
+SSH:     SSHv2 configured; access policy varies by device
+NAT:     PAT overload via R1 Gi0/3; no static NAT shown
 ```
 
 ---
@@ -29,7 +32,7 @@ NAT:     Static NAT for SRV1 (fixed public IP) + PAT for all others
 ### Section 1 — DHCP on R1
 
 > [!NOTE] Key Concept
-> R1 acts as the DHCP server for all subnets. **Excluded addresses** reserve IPs for network devices (routers, switches, SVIs). Pools define the network, gateway, DNS, and domain for each subnet.
+> R1 has DHCP pools for the listed client networks. **Excluded addresses** reserve IPs for network devices (routers, switches, SVIs). Pools define the network, gateway, DNS, and domain for each subnet. Compare each pool with the addressing table: the harvested `A-Mgmt` pool has a wrong default-router value (`10.5.0.4` instead of the planned `10.0.0.1`).
 
 ```
 ! === R1 — DHCP Excluded Addresses (reserve first 10 usable IPs) ===
@@ -43,12 +46,12 @@ ip dhcp excluded-address 10.5.0.1 10.5.0.10    ! VLAN 30 — Office B Staff/Othe
 ip dhcp excluded-address 10.0.0.17 10.0.0.26    ! VLAN 99 — Office B Mgmt
 
 
-! === R1 — DHCP Pools ===
+! === Illustrative DHCP pool syntax; validate every value against the live pool ===
 
 ip dhcp pool VLAN10_OFFICEA
  network 10.1.0.0 255.255.255.0
  default-router 10.1.0.1          ! HSRP virtual IP — the gateway
- dns-server 10.5.0.4               ! SRV1
+ dns-server 10.5.0.4               ! WIN-SV1
  domain-name SankeyLab
  exit
 
@@ -74,7 +77,8 @@ ip dhcp pool VLAN99_MGMT_A
  option 43 ip 10.0.0.7            ! WLC IP — LWAPs use this to find the WLC
  exit
 
-! Repeat for Office B pools (VLAN10, 20, 30, 99 with 10.2.x.x addressing)
+! Office B pools use VLAN 10: 10.3.0.0/24, VLAN 20: 10.4.0.0/24,
+! VLAN 30: 10.5.0.0/24, and Management VLAN 99: 10.0.0.16/28.
 ```
 
 **`option 43`** — tells Lightweight Access Points (LWAPs) the IP of the WLC so they can associate with it during boot. Without this, LWAPs have no way to find the WLC.
@@ -114,7 +118,7 @@ interface Vlan99
 
 ---
 
-### Section 3 — NTP
+### Section 3 — NTP (Concept Example)
 
 > [!NOTE] Key Concept
 > **NTP** (Network Time Protocol) synchronises clocks. R1 is the **authoritative time source** with an authentication key — every device points to R1 and validates the key before accepting time updates.
@@ -122,14 +126,14 @@ interface Vlan99
 ```
 ! === R1 — NTP Server (authoritative) ===
 ntp authenticate
-ntp authentication-key 1 md5 0007100805 7
+ntp authentication-key 1 md5 <key-string> 7
 ntp trusted-key 1
 ntp master 5          ! stratum 5 — R1 acts as authoritative source
 
 
 ! === All other devices (CSW1, CSW2, DSW-A1/A2, DSW-B1/B2, ASWs) ===
 ntp authenticate
-ntp authentication-key 1 md5 0007100805 7
+ntp authentication-key 1 md5 <key-string> 7
 ntp trusted-key 1
 ntp server 10.0.0.76 key 1    ! point to R1's loopback with key validation
 ```
@@ -137,21 +141,23 @@ ntp server 10.0.0.76 key 1    ! point to R1's loopback with key validation
 > [!WARNING] Exam Flag 🎯
 > NTP authentication key must match exactly on both server and clients — including the key number (1), algorithm (md5), and passphrase. Mismatch = clients reject R1's time updates silently.
 
+The harvested R1 config does not show `ntp master` or an NTP server association. Client configs contain authentication-key settings, but that alone does not demonstrate a synchronized clock. Verify live with `show ntp status` and `show ntp associations`.
+
 ---
 
 ### Section 4 — SNMP and Syslog
 
 > [!NOTE] Key Concept
-> **SNMP** lets a management station (SRV1) poll device statistics. **Syslog** sends log messages to SRV1 for centralised monitoring. Both are configured on every network device.
+> **SNMP** lets a management station poll device statistics. **Syslog** sends log messages to a collector. The harvested device configs contain SNMP and syslog settings, but manager polling and log receipt have not been verified.
 
 ```
 ! === All devices — SNMP + Syslog ===
 
 ! SNMP read-only community string
-snmp-server community SNMPSTRING RO    ! Read-Only — monitoring only
+snmp-server community <read-only-community> RO
 
 ! Syslog
-logging 10.5.0.4                    ! SRV1 IP
+logging 10.5.0.4                    ! WIN-SV1 IP
 logging trap debugging               ! severity 7 = send all messages
 logging buffered 8192                ! buffer 8 KB of logs locally too
 ```
@@ -174,10 +180,10 @@ logging buffered 8192                ! buffer 8 KB of logs locally too
 
 ---
 
-### Section 5 — SSH Hardening
+### Section 5 — SSH Hardening (Concept Example)
 
 > [!NOTE] Key Concept
-> SSH v2 with RSA 4096-bit keys, restricted by ACL to only Office A's PC subnet, applied to VTY lines with `login local` and `transport input ssh`.
+> SSH v2 with a locally selected key size, restricted by an example ACL, applied to VTY lines with `login local` and `transport input ssh`. Check each device's VTY configuration before relying on the example.
 
 ```
 ! === All devices — SSH Configuration ===
@@ -194,7 +200,7 @@ ip ssh version 2
 
 ! Step 4: ACL restricting SSH source to Office A's Mgmt subnet only
 ip access-list standard SSH_ACCESS
- permit 10.1.0.0 0.0.0.255
+ permit 10.1.0.0 0.0.0.255    ! Example: Office A VLAN 10, not the management subnet
  exit
 
 ! Step 5: Apply to VTY lines
@@ -215,84 +221,22 @@ line vty 0 15
 
 ---
 
-### Section 6 — FTP-Based IOS Upgrade on R1
+### Section 6 — IOS Image Maintenance (Outside This Lab)
 
-> [!NOTE] Key Concept
-> R1's IOS is upgraded by downloading a new image from SRV1 via FTP, setting the boot system variable, saving, and reloading. This is a slow process — the file transfer can take several minutes.
-
-```
-! === R1 — IOS Upgrade via FTP ===
-
-! Step 1: Configure FTP credentials
-ip ftp username cisco
-ip ftp password cisco123
-
-! Step 2: Download new IOS image from SRV1 (10.5.0.4)
-copy ftp://10.5.0.4/c2900-universalk9-mz.SPA.155-3.M4a.bin flash:
-! Confirm filename and flash destination when prompted
-! (This step takes several minutes — wait for it to complete)
-
-! Step 3: Set boot system to new image
-boot system flash:c2900-universalk9-mz.SPA.155-3.M4a.bin
-
-! Step 4: Save config
-write memory
-
-! Step 5: Reload
-reload
-
-! After reload — Step 6: Verify new version
-show version
-! Look for the new image filename in the output
-
-! Step 7: Delete old image (reclaim flash space)
-delete flash:c2900-universalk9-mz.SPA.151-4.M4.bin
-```
+The harvested configs do not document an FTP-based IOS upgrade. This lab uses virtual IOSv/IOL images managed by the PNetLab environment; do not apply an unrelated physical-router image or reload a shared device as part of this study guide. For image maintenance, follow the emulator/platform's image lifecycle and use an isolated, backed-up environment.
 
 ---
 
 ### Section 7 — NAT on R1
 
 > [!NOTE] Key Concept
-> **NAT** translates private (RFC 1918) addresses to public addresses for internet access. Two types configured: **static NAT** gives SRV1 a fixed public IP; **dynamic PAT** shares one public IP pool across all other hosts.
+> **NAT** translates private (RFC 1918) addresses for upstream access. The harvested R1 config has **PAT overload** on Gi0/3; it does not show a static NAT mapping or a public address pool.
 
 ```
-! === R1 — NAT Configuration ===
-
-! Mark interfaces
-interface GigabitEthernet0/0/0
- ip nat outside    ! ISP A link — public internet side
- exit
-
-interface GigabitEthernet0/0/1
- ip nat outside    ! ISP B link — public internet side
- exit
-
-interface GigabitEthernet0/1/0
- ip nat inside     ! LAN side
- exit
-
-
-! Static NAT: SRV1 private IP → fixed public IP
-ip nat inside source static 10.5.0.4 203.0.113.113
-
-
-! Dynamic PAT: all internal subnets → shared public IP pool
-! Step 1: ACL defines which traffic gets NAT'd
-ip access-list standard NAT_SUBNETS
- permit 10.1.10.0 0.0.0.255    ! Office A PCs
- permit 10.1.20.0 0.0.0.255    ! Office A Phones
- permit 10.1.40.0 0.0.0.255    ! Wi-Fi
- permit 10.1.99.0 0.0.0.255    ! Management
- permit 10.2.10.0 0.0.0.255    ! Office B PCs
- permit 10.2.20.0 0.0.0.255    ! Office B Phones
- exit
-
-! Step 2: Define public IP pool
-ip nat pool POOL1 203.0.113.200 203.0.113.210 netmask 255.255.255.0
-
-! Step 3: Apply PAT (overload = many-to-one, using port numbers)
-ip nat inside source list NAT_SUBNETS pool POOL1 overload
+! === Live R1 PAT rule ===
+! Gi0/0 and Gi0/1 are inside; Gi0/2 and Gi0/3 are outside.
+! ACL 2 selects inside source subnets (see configs/R1.txt).
+ip nat inside source list 2 interface GigabitEthernet0/3 overload
 ```
 
 **Static NAT vs. Dynamic PAT:**
@@ -302,7 +246,7 @@ ip nat inside source list NAT_SUBNETS pool POOL1 overload
 | Mapping | 1:1 fixed | Many:1 with port multiplexing |
 | Use case | Server needing fixed public IP | Outbound client traffic |
 | Direction | Both inbound and outbound | Outbound only |
-| Pool | Not needed — one IP per translation | Shared pool of public IPs |
+| Pool | Not needed — one IP per translation | May use a public pool or the outside-interface address |
 
 **CDP → LLDP migration:**
 ```
@@ -318,79 +262,9 @@ interface range FastEthernet0/1 - 10
 
 ---
 
-## 🖥️ NetBridge Applied — Full Config Block
+## Live Configuration Reference
 
-> [!TIP] R1 — Complete Part 6 Configuration (condensed)
-
-```
-! === R1 — All Network Services ===
-
-! DHCP excluded addresses + pools (see Section 1)
-ip dhcp excluded-address 10.1.0.1 10.1.0.10
-! ... (all excluded ranges)
-ip dhcp pool VLAN10_OFFICEA
- network 10.1.0.0 255.255.255.0
- default-router 10.1.0.1
- dns-server 10.5.0.4
- domain-name SankeyLab
-
-! NTP
-ntp authenticate
-ntp authentication-key 1 md5 0007100805 7
-ntp trusted-key 1
-ntp master 5
-
-! SNMP + Syslog
-snmp-server community JeremysITLabRO RO
-logging 10.5.0.4
-logging trap debugging
-logging buffered 8192
-
-! SSH
-ip domain-name SankeyLab
-crypto key generate rsa
-! [4096 at prompt]
-ip ssh version 2
-
-ip access-list standard SSH_ACCESS
- permit 10.1.0.0 0.0.0.255
-
-line vty 0 15
- login local
- transport input ssh
- access-class SSH_ACCESS in
- logging synchronous
- exec-timeout 30 0
-
-! NAT
-interface GigabitEthernet0/2
- ip nat outside
-interface GigabitEthernet0/3
- ip nat outside
-interface GigabitEthernet0/0
- ip nat inside
-interface GigabitEthernet0/1
- ip nat inside
-
-ip nat inside source static 10.5.0.4 203.0.113.113
-
-ip access-list standard NAT_SUBNETS
- permit 10.1.0.0 0.0.255.255
- permit 10.2.0.0 0.0.255.255
- permit 10.3.0.0 0.0.255.255
- permit 10.4.0.0 0.0.255.255
- permit 10.5.0.0 0.0.255.255
- permit 10.0.0.0 0.0.255.255
-
-ip nat pool POOL1 203.0.113.200 203.0.113.210 netmask 255.255.255.0
-ip nat inside source list NAT_SUBNETS pool POOL1 overload
-
-! CDP → LLDP
-no cdp run
-lldp run
-
-write memory
-```
+Use the harvested [R1 configuration](../lab01-ccna-megalab/configs/R1.txt) and the device-specific configs as the authoritative command record. The lab's R1 uses interface-based PAT on Gi0/3, and its DHCP pools have distinct names and values. The generic examples above are not a combined paste-ready configuration.
 
 ---
 
@@ -401,9 +275,9 @@ write memory
 | `show ip dhcp binding` | All assigned leases with MAC and IP |
 | `show ip dhcp pool` | Pool name, network, utilisation |
 | `show ntp status` | Clock is synchronised; stratum matches |
-| `show ntp associations` | R1 loopback marked with `*` (synced) |
+| `show ntp associations` | A current peer marked `*` (synchronized); an R1 loopback is not confirmed as a live time source |
 | `show ip ssh` | SSH enabled, version 2.0 |
-| `show ip nat translations` | Static entry for SRV1; dynamic PAT entries for hosts |
+| `show ip nat translations` | Dynamic PAT entries for active translated flows; no static server mapping is configured in the harvested config |
 | `show ip nat statistics` | Hits counter incrementing for active NAT |
 | `show users` | Active SSH sessions on VTY lines |
 | `show lldp neighbors` | Replaces CDP output after migration |
@@ -438,8 +312,8 @@ write memory
 | `ip ssh version 2` | Force SSHv2 | Eliminates v1.99 ambiguous mode |
 | `transport input ssh` | Block Telnet on VTY | Telnet = plaintext; always restrict to SSH |
 | `access-class X in` | Apply ACL to VTY lines | Different from `ip access-group` (which is for interfaces) |
-| Static NAT | 1:1 fixed mapping | `ip nat inside source static <private> <public>` |
-| Dynamic PAT | Many:1 with ports | `ip nat inside source list X pool Y overload` |
+| Static NAT | 1:1 fixed mapping | Not shown in the harvested config |
+| Dynamic PAT | Many:1 with ports | Live rule uses ACL 2 and Gi0/3's interface address |
 | NAT inside | Internal (private) interface | LAN-facing interfaces |
 | NAT outside | External (public) interface | ISP-facing interfaces |
 
@@ -447,10 +321,13 @@ write memory
 
 ## 🛠️ Practice Tasks
 
+> [!CAUTION] Practice safely
+> DHCP, SSH, routing, and service changes can lock out users or disrupt the lab. Perform failure tests in an isolated copy or agreed maintenance window, save a known-good backup, and restore the original config after each test.
+
 1. **DHCP relay test:** On a PC in VLAN 10, request a DHCP address. Verify on R1 with `show ip dhcp binding` that the lease appears. Remove `ip helper-address` from the SVI and retry — verify DHCP fails. Re-add and confirm recovery.
 
 2. **NTP verification:** Configure NTP on two devices pointing to R1. Wait 60 seconds. Run `show ntp status` — verify `Clock is synchronized`. Change the NTP key passphrase on one device to something wrong — verify it falls out of sync.
 
-3. **SSH lockout test:** Configure the SSH ACL allowing only `10.1.10.0/24`. Try SSH from a host in VLAN 10 — should succeed. Try from VLAN 20 — should be refused. Verify with `show users` on the router.
+3. **SSH access-policy test (isolated practice):** Configure an SSH VTY ACL for Office A VLAN 10 (`10.1.0.0/24`) on a test device. Test from VLAN 10 and another subnet, then verify the active VTY policy and sessions. Do not infer that every live device currently uses this policy.
 
-4. **NAT failover:** Verify hosts can ping an internet IP through ISP A (NAT active). Shut R1's ISP A interface. Verify the floating static route activates and NAT traffic flows through ISP B. Check `show ip nat translations` for active PAT entries via the backup path.
+4. **PAT verification:** Generate a permitted outbound flow, then inspect `show ip nat translations` and `show ip nat statistics` on R1. The captured IPv4 default route is DHCP on Gi0/3; no IPv4 floating static backup is shown, so do not use this as an IPv4 failover test.

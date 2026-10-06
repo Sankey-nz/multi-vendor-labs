@@ -2,16 +2,20 @@
 
 > [!NOTE] Part Summary
 > **Topic:** Bond redundant switch links and propagate VLANs cleanly across the access/distribution layers
-> **NetBridge Scenario:** The client's offices each have dual distribution switches for redundancy. Part 2 bonds those redundant links into EtherChannels, configures VTP to auto-sync VLANs, and assigns every port to the right VLAN — so hosts in Office A can't see hosts in Office B (unless routing allows it).
+> **NetBridge Scenario:** The client's offices each have dual distribution switches for redundancy. Part 2 bonds selected links into EtherChannels, configures trunks, and assigns ports to VLANs. VTP is an optional concept example; it is not explicitly configured in the harvested lab. Inter-office reachability depends on routing and policy, not VLAN separation alone.
 > **Key Concepts:** EtherChannel (PAgP vs LACP), trunking, DTP, native VLAN security, VTP, VLAN assignment, PortFast/BPDU Guard on access ports
-> **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2
+> **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2, ASW-B3
+
+> [!IMPORTANT] How to use the examples
+> The harvested configs confirm the VLANs, trunks, native VLAN 1000, PAgP on the Office A distribution pair, and LACP on the Office B pair. They do **not** contain explicit VTP configuration. The commands below are teaching examples; interface names and VLAN purposes must be checked against the live configs before use.
+> The trunks specify native VLAN ID 1000, but the harvested configs do not show an explicit VLAN 1000 database entry. Check `show vlan brief` on the running switches before describing that VLAN as active.
 
 ---
 
 ## 🗺️ Big Picture
 
 > [!TIP] Mental Model
-> Think of Part 2 as building the roads before adding traffic lights (STP) or directions (routing). EtherChannels are the highway lanes; VLANs are the separate lanes within them; VTP is the road-sign syncing system.
+> Think of Part 2 as building the roads before adding traffic lights (STP) or directions (routing). EtherChannels bundle links; VLANs separate Layer 2 broadcast domains. VTP is an optional VLAN-database distribution protocol, not a live dependency in this lab.
 
 ```
 Office A:                          Office B:
@@ -19,9 +23,11 @@ DSW-A1 ══ PAgP ══ DSW-A2          DSW-B1 ══ LACP ══ DSW-B2
    ↕ trunk             ↕ trunk        ↕ trunk            ↕ trunk
 ASW-A1  ASW-A2  ASW-A3             ASW-B1  ASW-B2
 
-VLANs Office A: 10 (Mgmt), 20 (Staff), 40 (Servers/Other), 99 (Mgmt)
-VLANs Office B: 10 (Mgmt), 20 (Staff), 30 (Staff/Other), 99 (Mgmt)
+Office A: VLAN 10 (user/data), 20 (voice/staff), 40 (wireless clients), 99 (network management)
+Office B: VLAN 10 (user/data), 20 (voice/staff), 30 (servers/staff), 99 (network management)
 ```
+
+VLAN IDs are scoped locally to each Layer 2 site; VLAN 10 in Office A and VLAN 10 in Office B are separate subnets. The topology also labels VLAN 999 as a parking VLAN, but VLAN 999 is not confirmed in the harvested switch configs.
 
 > [!cross-ref] Cross-Reference
 > → **[P03-IP-Addressing-L3-EtherChannel-HSRP](./P03-IP-Addressing-L3-EtherChannel-HSRP.md):** SVIs for each VLAN are configured in Part 3
@@ -112,10 +118,10 @@ interface Port-channel1
 - Even with `switchport mode trunk`, DTP frames are still sent
 - `switchport nonegotiate` stops DTP frames entirely — best practice on all trunk ports
 
-**`switchport trunk native vlan 1000` — VLAN hopping defence:**
+**`switchport trunk native vlan 1000` — configured native VLAN ID:**
 - The **native VLAN** carries untagged frames on a trunk
 - If two trunks share the same native VLAN, an attacker can inject frames that "hop" between VLANs
-- Setting native VLAN to an **unused VLAN** (1000 here) eliminates this attack surface
+- Using a dedicated, otherwise-unused native VLAN reduces accidental exposure; it does not by itself eliminate VLAN-hopping risks. Keep trunk configuration consistent at both ends and use other layer-2 protections as appropriate.
 
 > [!WARNING] Exam Flags 🎯
 > - Native VLAN mismatch between two trunk ends → CDP warning; traffic issues — both ends must match
@@ -126,13 +132,13 @@ interface Port-channel1
 
 ### Section 3 — VTP (VLAN Trunking Protocol)
 
-> [!NOTE] Key Concept
-> **VTP** automatically synchronises the VLAN database across switches in the same VTP domain. One **server** creates/modifies VLANs; **clients** receive updates and cannot add VLANs locally.
+> [!NOTE] Learning concept — not configured in the harvested lab
+> **VTP** can distribute VLAN database changes among switches in a VTP domain. This lab's harvested configs do not show explicit VTP domain, version, or server/client configuration. Do not assume VLANs are being synchronized by VTP; verify the VLAN database and trunks directly.
 
 ```
 ! === VTP Server (one per office — e.g. DSW-A1 for Office A) ===
 vtp mode server
-vtp domain JeremysITLab
+vtp domain <lab-domain>
 vtp version 2
 
 ! Create VLANs on the server only
@@ -153,7 +159,7 @@ vlan 99
 
 ! === VTP Client (all other switches) ===
 vtp mode client
-vtp domain JeremysITLab
+vtp domain <lab-domain>
 vtp version 2
 ! VLANs propagate automatically — do NOT create VLANs on clients
 ```
@@ -162,15 +168,16 @@ vtp version 2
 
 | VLAN | Name | Office A | Office B |
 |---|---|---|---|
-| 10 | Management | ✅ (10.1.0.0/24) | ✅ (10.3.0.0/24) |
-| 20 | Staff | ✅ (10.2.0.0/24) | ✅ (10.4.0.0/24) |
-| 30 | Staff/Other | ❌ | ✅ (10.5.0.0/24) |
-| 40 | Servers/Other | ✅ (10.6.0.0/24) | ❌ |
-| 99 | Management | ✅ (10.0.0.x) | ✅ (10.0.0.x) |
-| 1000 | Native (unused) | ✅ | ✅ |
+| 10 | User/data | ✅ (`10.1.0.0/24`) | ✅ (`10.3.0.0/24`) |
+| 20 | Voice/staff | ✅ (`10.2.0.0/24`) | ✅ (`10.4.0.0/24`) |
+| 30 | Servers/staff | — | ✅ (`10.5.0.0/24`) |
+| 40 | Wireless clients | ✅ (`10.6.0.0/24`) | — |
+| 99 | Network management | ✅ (`10.0.0.0/28`) | ✅ (`10.0.0.16/28`) |
+| 999 | Parking VLAN (topology label) | Not confirmed in harvested configs | Not confirmed in harvested configs |
+| 1000 | Configured native VLAN ID; VLAN database presence unverified | ✅ (trunk setting) | ✅ (trunk setting) |
 
 > [!WARNING] VTP Gotcha 🎯
-> A **VTPv2 client with a higher revision number** can overwrite the server's VLAN database when connected — if you bring an old switch in from another network. Always reset revision number to 0 when adding a switch to a new VTP domain (change to transparent mode and back to client/server).
+> VTP revision numbers can cause unexpected VLAN database changes when switches join a domain. Before connecting a switch to a VTP domain, verify its mode, domain, version, and revision; use transparent/off mode when centralized VLAN propagation is not required.
 
 ---
 
@@ -224,7 +231,10 @@ interface range GigabitEthernet1/0/10 - 24
 
 ---
 
-## 🖥️ NetBridge Applied — Full Config Block
+## 🧪 Example Configuration Templates
+
+> [!NOTE]
+> These command blocks are practice templates, not harvested configs. In particular, do not configure VTP unless you have deliberately selected and verified a VTP design for an isolated exercise.
 
 > [!TIP] DSW-A1 — Complete Part 2 Configuration
 
@@ -254,7 +264,7 @@ interface range GigabitEthernet1/0/3 - 5
 
 ! Step 4: VTP server + create VLANs
 vtp mode server
-vtp domain JeremysITLab
+vtp domain <lab-domain>
 vtp version 2
 
 vlan 10
@@ -280,7 +290,7 @@ write memory
 
 ! Step 1: VTP client
 vtp mode client
-vtp domain JeremysITLab
+vtp domain <lab-domain>
 vtp version 2
 
 ! Step 2: Uplinks to DSW-A1 and DSW-A2 as trunks
@@ -316,8 +326,8 @@ write memory
 |---|---|
 | `show etherchannel summary` | Flags: `SU` on Po1 (Layer 2, in use); `P` on member ports |
 | `show interfaces trunk` | Port-channel1 listed as trunk; allowed VLANs correct |
-| `show vlan brief` | All VLANs (10, 20, 30/40, 99) present on client switches (propagated by VTP) |
-| `show vtp status` | Correct domain, version, and mode (server/client) |
+| `show vlan brief` | Required VLANs exist locally and match the site plan |
+| `show vtp status` | Check only when VTP is intentionally configured for an exercise |
 | `show interfaces status` | Unused ports showing `disabled`; access ports showing correct VLAN |
 | `show spanning-tree vlan 10` | Port-channel shows as trunk |
 
@@ -329,7 +339,7 @@ write memory
 > - **`desirable-auto` works; `auto-auto` doesn't** — one side must be active/desirable
 > - **Forgetting `switchport nonegotiate`** — DTP still runs even in trunk mode without it; could be exploited
 > - **Native VLAN mismatch** — both sides of a trunk must have the same native VLAN or CDP alerts and VLAN tagging breaks
-> - **Creating VLANs on VTP clients** — client mode blocks local VLAN creation; create VLANs on the VTP server only
+> - **Assuming VTP is active** — verify the domain, mode, and version on every switch; the harvested lab configs do not show explicit VTP setup
 > - **Forgetting to include VLAN 99 in allowed list** — Management VLAN must be explicitly allowed or management traffic is pruned
 > - **EtherChannel member ports not matching** — speed, duplex, VLAN config must match on all member interfaces or the channel won't form
 
@@ -345,10 +355,9 @@ write memory
 | 802.1Q Trunking | Tags frames with VLAN ID on inter-switch links | Native VLAN frames are NOT tagged |
 | DTP | Auto-negotiates trunk vs. access | Disable with `switchport nonegotiate` |
 | Native VLAN | Untagged VLAN on a trunk | Set to unused VLAN (e.g. 1000) to prevent hopping |
-| VLAN hopping | Attack exploiting shared native VLAN | Fix: change native VLAN to unused VLAN |
-| VTP server | Creates and propagates VLANs | Only one server per office needed |
-| VTP client | Receives VLAN database, cannot create locally | All access switches are clients |
-| VTP revision number | Higher revision wins — can overwrite VLAN DB | Reset by changing domain or mode before connecting |
+| VLAN hopping | Attack exploiting trunk/native-VLAN behavior | A dedicated native VLAN is one mitigation; it is not a complete fix |
+| VTP | Optional VLAN database distribution protocol | Not explicitly configured in the harvested lab |
+| VTP revision number | Helps determine which database update is newer | Check mode/domain/revision before joining a domain |
 | Access port | Single VLAN, untagged | End devices connect here |
 | Voice VLAN | Separate VLAN for IP phones on same port | `switchport voice vlan 20` |
 

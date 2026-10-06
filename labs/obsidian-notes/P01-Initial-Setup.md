@@ -2,7 +2,7 @@
 
 > [!NOTE] Part Summary
 > **Topic:** Baseline security hardening on every router and switch before any network config
-> **NetBridge Scenario:** Before touching a single VLAN or route, NetBridge's security policy requires every device to be named, password-protected, and locked down. This is the foundation every other part builds on.
+> **SankeyLab Scenario:** Before configuring VLANs or routes, establish a consistent identity and secure management access on each network device.
 > **Key Concepts:** `hostname`, `enable secret` (type 9 vs type 5), local user accounts, console line security, `write memory`
 > **Devices involved:** R1, CSW1, CSW2, DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2
 
@@ -11,19 +11,19 @@
 ## 🗺️ Big Picture
 
 > [!TIP] Mental Model
-> Part 1 is pure hygiene — no routing, no VLANs, just making sure every device has an identity and a locked front door. Do this wrong and the grader can't even verify the hostname.
+> Part 1 establishes a baseline: identify the device, secure administrative access, and save the configuration. No VLAN or routing changes are made here.
 
 ```
 Every device in the topology:
-  hostname → must match diagram exactly (grader checks this)
+  hostname → use the agreed device name
   enable secret → encrypted privileged access
   local user → console login requires credentials
   console line → forces local login
-  write memory → saves to startup-config (grader reads THIS, not running-config)
+  write memory → saves the current running-config to startup-config
 ```
 
-> [!WARNING] The One Rule That Matters Everywhere
-> **`write memory` after every device.** The grader only reads **startup-config** (what loads on boot). A perfect running-config that hasn't been saved scores zero.
+> [!WARNING] Save Deliberately
+> `write memory` saves the current running configuration so it persists after a restart. In a live lab, save after a verified change; do not assume an external grader or evaluator is present.
 
 ---
 
@@ -32,13 +32,13 @@ Every device in the topology:
 ### Section 1 — Hostname
 
 > [!NOTE] Key Concept
-> The hostname must match the topology diagram **exactly** — case-sensitive. The grader is literal; `dsw-a1` and `DSW-A1` are treated as different.
+> Use one consistent hostname per device so command output, diagrams, and configuration files can be correlated. IOS hostnames are case-preserving; case alone is not normally a functional difference.
 
 ```
 hostname DSW-A1
 ```
 
-**Why it matters:** The grader checks `show running-config | include hostname` against its expected value. One wrong character = zero points for that check.
+**Why it matters:** Clear names reduce mistakes when connecting to multiple devices and make logs easier to interpret.
 
 ---
 
@@ -71,10 +71,11 @@ enable secret class
 ### Section 3 — Local User Account
 
 > [!NOTE] Key Concept
-> A local user account provides credential-based login for console (and later SSH) access. The username and password must match what the grader expects — use the lab's specified credentials.
+> A local user account can authenticate console or SSH access. Choose a unique, strong secret for your own lab; do not reuse credentials from examples or publish real secrets in configuration files.
 
 ```
-username cisco privilege 15 algorithm-type scrypt secret CCNA
+! Example only: replace the placeholders with your lab's non-reused credentials.
+username <local-user> privilege 15 algorithm-type scrypt secret <strong-secret>
 ```
 
 **`privilege 15`** gives the user immediate exec-level access without needing `enable` — useful for SSH management (Part 6).
@@ -100,7 +101,7 @@ line console 0
 ### Section 5 — Save Configuration
 
 > [!NOTE] Key Concept
-> Three equivalent ways to save — all write running-config to startup-config (NVRAM). Pick one, use it consistently.
+> These commands save running-config to startup-config (NVRAM). Use a form supported by the device and verify the save succeeded.
 
 ```
 ! Option 1 — full form
@@ -113,8 +114,8 @@ write memory
 do write
 ```
 
-> [!WARNING] Never Skip This
-> The grader reads startup-config only. If you configure 100 things and forget to save, you score 0. Build `write memory` into muscle memory — type it after every device, every part.
+> [!TIP] Verify the Save
+> After saving, compare the relevant section of `show running-config` and `show startup-config`. Saving does not verify that the configuration is correct or operational.
 
 ---
 
@@ -140,7 +141,7 @@ interface GigabitEthernet0/0
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!TIP] Part 1 — Repeat on Every Device (substituting the correct hostname)
+> [!TIP] Part 1 — Baseline Example (adapt for the device and image)
 
 ```
 ! === INITIAL SETUP — apply to EVERY device ===
@@ -152,7 +153,8 @@ hostname DSW-A1
 enable algorithm-type scrypt secret class
 
 ! Step 3: Local user account
-username cisco privilege 15 algorithm-type scrypt secret CCNA
+! Use placeholders; configure a unique, strong secret locally.
+username <local-user> privilege 15 algorithm-type scrypt secret <strong-secret>
 
 ! Step 4: Secure the console line
 line console 0
@@ -188,11 +190,11 @@ write memory
 
 | Command | What to Look For |
 |---|---|
-| `show running-config \| include hostname` | Exact match to topology diagram name |
+| `show running-config \| include hostname` | Expected device name |
 | `show running-config \| include enable secret` | `enable secret 9 $9$...` (Type 9) or `enable secret 5 $1$...` (Type 5) |
-| `show running-config \| include username` | `username jeremy privilege 15 secret 9 ...` |
+| `show running-config \| include username` | The intended local username and a hashed secret; never paste the full output into a public report |
 | `show running-config \| section line con` | `login local` present |
-| `show startup-config \| include hostname` | Confirms `write memory` was done — if this differs from running-config, you forgot to save |
+| `show startup-config \| include hostname` | Confirms the saved hostname matches the running configuration |
 | `show cdp neighbors` | Confirms Cisco neighbor visibility |
 | `show lldp neighbors` | Confirms multi-vendor neighbor visibility |
 
@@ -201,7 +203,7 @@ write memory
 ## ⚠️ Common Pitfalls
 
 > [!WARNING] Watch Out
-> - **Wrong hostname case** — `dsw-a1` fails if grader expects `DSW-A1`; match the topology diagram exactly
+> - **Wrong hostname** — confirm you are connected to the intended device before making changes
 > - **`enable password` instead of `enable secret`** — stores password in plaintext or weak Type 7; always use `enable secret`
 > - **Forgetting `write memory`** — most common single cause of lost points; make it a reflex after every device
 > - **`login` instead of `login local`** — `login` requires a line password set with `password <pw>`; `login local` uses the username/password database (which is what you want)
@@ -213,14 +215,14 @@ write memory
 
 | Concept | What It Does | Exam Tip |
 |---|---|---|
-| `hostname` | Sets the device name shown in the prompt | Must match topology exactly — grader is case-sensitive |
+| `hostname` | Sets the device name shown in the prompt | Use the agreed name consistently in diagrams and configs |
 | `enable secret` | Hashed privileged password | Always beats `enable password`; Type 9 > Type 5 |
 | `username privilege 15 secret` | Local user with full admin rights | Needed for `login local` on console and SSH |
 | `login local` | Require username/password on console | Use `login local` not bare `login` |
 | `logging synchronous` | Prevents syslog messages interrupting typing | Best practice on all line configs |
-| `write memory` | Save running-config → startup-config | Grader reads startup-config ONLY |
+| `write memory` | Save running-config → startup-config | Verify after saving; unsaved changes can be lost on restart |
 | `copy running-config startup-config` | Identical to `write memory` | Three equivalent forms — all do the same thing |
-| startup-config | Config loaded on boot (NVRAM) | What the grader checks |
+| startup-config | Config loaded on boot (NVRAM) | Persists saved changes across restarts |
 | running-config | Active config in RAM | Lost on reboot if not saved |
 | `cdp` | Cisco discovery protocol | Default on; disable on WAN interfaces for security |
 | `lldp` | Industry standard discovery | Must be enabled manually with `lldp run` |
@@ -231,7 +233,7 @@ write memory
 
 1. **Hostname drill:** Configure all 9 devices with correct hostnames from memory. Verify each with `show running-config | include hostname`. Common mistake: forgetting a hyphen or getting the case wrong.
 
-2. **Password types:** On a router, set `enable password cisco` then `enable secret class`. Exit to user exec and try `enable`. Which password works? Then check `show running-config` — what do you see for each? Remove `enable password` and explain why it's redundant.
+2. **Password types:** In an isolated lab, set `enable password <weak-test-password>` then `enable secret <strong-test-password>`. Exit to user exec and try `enable`. Which password works? Then check `show running-config` — what do you see for each? Remove `enable password` and explain why it's redundant.
 
 3. **Console lockout simulation:** Configure `login local` on the console. Disconnect and reconnect — confirm you're prompted for username and password. Try a wrong password — verify it's rejected.
 

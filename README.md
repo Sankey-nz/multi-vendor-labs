@@ -10,6 +10,13 @@
 
 This repository documents practical network engineering labs built in PNetLab with virtual Cisco IOL and IOSv devices. The labs use Cisco IOS-style configuration and real routing and switching protocols inside a virtual topology; they are not physical hardware deployments. The goal is to connect network design decisions to configuration, verification, and troubleshooting.
 
+### How to use the repository
+
+1. Start with the lab's business problem and topology diagram.
+2. Read the addressing table before following a configuration guide; it records the harvested device addresses and identifies known exceptions.
+3. Treat study-note command blocks as learning examples, not as a paste-ready configuration. Confirm interface names, addressing, and current device state before applying commands.
+4. Use the verification commands and record what the live device reports. A saved configuration proves that a command is present, not that the service or end-to-end behavior has been tested.
+
 ### The business problem
 
 The first scenario is a fictional growing company, SankeyLab, with two offices. It needs a network that can:
@@ -28,7 +35,7 @@ The engineering task is to turn those needs into an address and VLAN plan, build
 
 | Lab | Platform | Status | Description |
 |-----|----------|--------|-------------|
-| [Lab 01 — CCNA Megalab](./labs/lab01-ccna-megalab) | PNetLab + Cisco IOL/IOSv | Built; live-state notes included | Two-office enterprise scenario for VLANs, subnetting, switching, routing, services, security, IPv6, wireless, and troubleshooting |
+| [Lab 01 — CCNA Megalab](./labs/lab01-ccna-megalab) | PNetLab + Cisco IOL/IOSv | Running configuration documented; feature validation varies | Two-office enterprise scenario for VLANs, subnetting, switching, routing, services, security, IPv6, wireless, and troubleshooting |
 | Lab 02 *(planned)* | — | Planned | — |
 
 The [Lab 01 topology diagram](./labs/lab01-ccna-megalab/topology/topology.png) shows the device and link layout. Its [addressing table](./labs/lab01-ccna-megalab/addressing-table.md) explains the subnet sizes, masks, and allocations.

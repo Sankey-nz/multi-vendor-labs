@@ -1,22 +1,25 @@
 # P05 — OSPF & Static Routing
 
 > [!NOTE] Part Summary
-> **Topic:** Enable OSPF across all L3 devices, configure dual default routes on R1 for ISP redundancy, and advertise the default route into OSPF
-> **NetBridge Scenario:** VLANs have IPs and gateways — but traffic can't reach the internet or cross between offices without routing. NetBridge deploys OSPF Area 0 across the entire network, adds a floating static route for ISP failover, and lets R1 inject a default route so every device knows how to reach the internet.
+> **Topic:** Study OSPF Area 0, default-route advertisement, and static-route failover concepts
+> **NetBridge Scenario:** VLANs have IPs and gateways — routing connects subnets and provides a path upstream. The live lab uses OSPF Area 0 and advertises a default route; R1's IPv4 default is learned by DHCP, while static-route failover is a separate practice concept.
 > **Key Concepts:** OSPF process, Area 0, router ID, `network` command, passive interfaces, `network-type point-to-point`, default route, `default-information originate`, floating static route, AD
 > **Devices involved:** R1, CSW1, CSW2, DSW-A1, DSW-A2, DSW-B1, DSW-B2
+
+> [!IMPORTANT] Current lab versus lesson example
+> OSPF Area 0 and `default-information originate` are present in the harvested configs. R1's **IPv4** default route is learned through DHCP on Gi0/3; there is no IPv4 static/floating default route in the captured config. The static-route sections below are standalone learning examples, not a description of the live IPv4 failover setup. The live lab does have primary and floating **IPv6** defaults; see [P08](./P08-IPv6.md).
 
 ---
 
 ## 🗺️ Big Picture
 
 > [!TIP] Mental Model
-> OSPF is the "GPS system" — it discovers all routes and shares them across the network. Static routes are the "hardcoded fallback" — when the GPS doesn't know a route (like the internet), you tell it manually. The floating static provides a backup ISP path that only activates if the primary disappears.
+> OSPF is the "GPS system" — it discovers routes and shares them across the network. Static routes are manually configured paths. A floating static can serve as a backup in a design that uses static routes; R1's live IPv4 default in this lab is learned through DHCP, not a floating static.
 
 ```
 Internet
-   ↕ ISP A (primary, AD=1)     ↕ ISP B (backup, AD=2 floating)
-         R1 (ASBR — default-information originate)
+   ↕ Upstream via Gi0/3 (IPv4 address/default route learned by DHCP)
+         R1 (OSPF ASBR — default-information originate)
               ↕ OSPF Area 0
          CSW1 ══ CSW2
               ↕ OSPF Area 0
@@ -39,16 +42,26 @@ Internet
 > **OSPF** (Open Shortest Path First) is a **link-state** routing protocol — every router builds a complete map of the network (LSDB) and independently runs Dijkstra's algorithm to find the best path. Process number is **locally significant** (doesn't need to match between devices).
 
 ```
-! === R1 ===
+! === R1 — live config uses interface-level OSPF activation ===
 router ospf 1
- router-id 10.0.0.76                  ! loopback IP — stable, never goes down
- network 10.0.0.76 0.0.0.0 area 0    ! loopback0 — /32 wildcard = exact match
- network 10.0.0.33 0.0.0.0 area 0    ! LAN uplink to CSW1
- network 10.0.0.37 0.0.0.0 area 0    ! LAN uplink to CSW2
- passive-interface Loopback0          ! loopback can't form OSPF neighbors
- default-information originate        ! inject default route into OSPF
+ router-id 10.0.0.76
+ passive-interface Loopback0
+ default-information originate
  exit
 
+interface Loopback0
+ ip ospf 1 area 0
+ exit
+
+interface GigabitEthernet0/0
+ ip ospf network point-to-point
+ ip ospf 1 area 0
+ exit
+
+interface GigabitEthernet0/1
+ ip ospf network point-to-point
+ ip ospf 1 area 0
+ exit
 
 ! === CSW1 ===
 router ospf 1
@@ -76,7 +89,7 @@ router ospf 1
  passive-interface Vlan10             ! hosts can't be OSPF neighbors
  passive-interface Vlan20
  passive-interface Vlan40
- passive-interface Vlan99             ! EXCEPT Management — see note below
+ ! VLAN 99 is not passive in the harvested DSW-A1 config.
  exit
 ```
 
@@ -87,10 +100,10 @@ router ospf 1
 > [!NOTE] Key Concept
 > **Passive interface** stops OSPF Hello packets on an interface — it still advertises the network into OSPF but doesn't try to form neighbors. Used on loopbacks (can't have neighbors) and user-facing SVIs (hosts aren't OSPF routers).
 
-**Rule for distribution switches:**
-- Make **all** SVIs passive **except Management VLAN 99**
-- Why: without Management VLAN passive, the two distribution switches form redundant OSPF adjacencies over every shared VLAN (10, 20, 40, 99) — wasting resources and creating unnecessary SPF calculations
-- Management VLAN 99 SVI is kept active so the two distribution switches can communicate via Management VLAN for other protocols if needed
+**Guidance for distribution switches:**
+- Make host-facing SVIs passive unless an OSPF adjacency is deliberately required on that VLAN.
+- Do not automatically exempt the management VLAN. A non-passive SVI can form an adjacency only if both devices run OSPF on that shared subnet.
+- In the harvested configs, DSW-A1 includes its VLAN 99 SVI in OSPF without marking it passive, while DSW-A2 does not include VLAN 99 in its OSPF network statements. Verify operational neighbors instead of assuming a redundant VLAN 99 adjacency exists.
 
 ```
 ! === DSW-A1 — Selective passive interfaces ===
@@ -99,7 +112,7 @@ router ospf 1
  passive-interface Vlan10
  passive-interface Vlan20
  passive-interface Vlan40
- ! Note: Vlan99 (Management) is NOT passive — kept active
+ ! VLAN 99 is not passive on the harvested DSW-A1; verify intended neighbor behavior.
  exit
 ```
 
@@ -131,10 +144,10 @@ interface Port-channel1
 
 ---
 
-### Section 4 — Default Routes on R1 (Primary + Floating)
+### Section 4 — Static Default-Route Failover (Concept Example)
 
 > [!NOTE] Key Concept
-> R1 has two ISP connections. The **primary** static default route (AD=1) handles normal traffic. The **floating static** (AD=2) is a backup — its higher AD means it's only installed in the routing table when the primary disappears.
+> **Concept example only:** Two static default routes can provide primary/backup paths when both next hops and link-failure behavior are known. This is not how the harvested R1 IPv4 route is configured.
 
 **Administrative Distance (AD):**
 
@@ -146,7 +159,7 @@ interface Port-channel1
 | RIP | 120 |
 
 ```
-! === R1 — Dual Default Routes ===
+! === Generic example — do not paste into the running lab ===
 
 ! Primary: via ISP A — recursive lookup (next-hop IP only)
 ! AD = 1 (default for static)
@@ -174,23 +187,34 @@ ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 203.0.113.5 2
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!TIP] R1 — Complete Part 5 Configuration
+> [!TIP] R1 — OSPF and Current IPv4 Default Route
 
 ```
-! === R1 — OSPF + Static Routes ===
+! === R1 — live IPv4 default route and OSPF config ===
 
-! Static default routes
-ip route 0.0.0.0 0.0.0.0 203.0.113.1          ! primary via ISP A, AD=1
-ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 203.0.113.5 2  ! floating backup
+! Live R1 default route is learned via DHCP on Gi0/3:
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp
+! No IPv4 floating static default route appears in the harvested config.
 
 ! OSPF
 router ospf 1
  router-id 10.0.0.76
- network 10.0.0.76 0.0.0.0 area 0
- network 10.0.0.33 0.0.0.0 area 0
- network 10.0.0.37 0.0.0.0 area 0
  passive-interface Loopback0
  default-information originate
+ exit
+
+interface Loopback0
+ ip ospf 1 area 0
+ exit
+
+interface GigabitEthernet0/0
+ ip ospf network point-to-point
+ ip ospf 1 area 0
+ exit
+
+interface GigabitEthernet0/1
+ ip ospf network point-to-point
+ ip ospf 1 area 0
  exit
 
 write memory
@@ -236,7 +260,7 @@ write memory
 |---|---|
 | `show ip ospf neighbor` | All expected neighbors in `FULL` state |
 | `show ip route ospf` | `O` routes for all remote subnets; `O*E2` for default route |
-| `show ip route 0.0.0.0` | Primary static (AD 1) active; floating not installed |
+| `show ip route 0.0.0.0` | Check the DHCP-learned default via Gi0/3; no IPv4 floating static is configured in the harvested state |
 | `show ip ospf interface brief` | All OSPF-activated interfaces listed with correct area |
 | `show ip ospf` | Router ID, process ID, area memberships |
 | `ping 10.0.0.76` from DSW-A1 | Reaches R1's loopback via OSPF |
@@ -264,8 +288,8 @@ write memory
 | Passive interface | Advertise network but don't send Hellos | Use on loopbacks and host-facing SVIs |
 | `point-to-point` | Skip DR/BDR election on direct links | Faster convergence on switch-to-switch links |
 | `default-information originate` | Inject default route into OSPF as E2 | R1 must have a default route itself |
-| Static route AD=1 | Primary default route | Installed by default; lower AD wins |
-| Floating static AD=2 | Backup default route | Higher AD = only installed if primary gone |
+| Static route AD=1 | Example primary route | Static-route example only; not the live IPv4 default |
+| Floating static AD=2 | Example backup route | Higher AD = lower preference; not configured for live IPv4 |
 | Recursive static | Next-hop only; fails if next-hop unreachable | Good for primary route — auto-fails gracefully |
 | Fully-specified static | Interface + next-hop; always in table while IF up | Good for floating backup |
 | ASBR | Router that imports external routes into OSPF | R1 role when `default-information originate` is set |
@@ -274,10 +298,13 @@ write memory
 
 ## 🛠️ Practice Tasks
 
+> [!CAUTION] Practice safely
+> Route/link failure tests can interrupt connectivity. Use an isolated copy or an agreed maintenance window, record the original state, and restore every changed route or interface after testing.
+
 1. **OSPF neighbor verification:** After configuring OSPF, run `show ip ospf neighbor` on every device. Verify all expected neighbors appear in FULL state. Troubleshoot any that are stuck in INIT or 2-WAY.
 
-2. **Floating static failover:** Verify primary default route is active (`show ip route 0.0.0.0`). Shut R1's primary WAN interface. Confirm the floating static takes over. Restore the WAN link and verify the primary route returns.
+2. **Static-route practice (optional):** In an isolated copy of the lab, configure two known static next hops and test route selection. Do not remove the live DHCP default route on R1; the harvested config does not show an IPv4 floating static backup.
 
-3. **`default-information originate` verification:** On DSW-A1, run `show ip route` — look for `O*E2 0.0.0.0/0` (OSPF external default route injected by R1). Verify you can ping an internet IP (8.8.8.8) from a distribution switch.
+3. **`default-information originate` verification:** On a distribution switch, run `show ip route` and check whether an OSPF external default is installed. Configuration alone does not establish that upstream connectivity or Internet access currently works.
 
 4. **Passive interface check:** Run `show ip ospf interface brief` on DSW-A1. Verify VLAN 10/20/40 SVIs show as passive. Then verify `show ip route` on CSW1 still shows the VLAN 10 subnet (passive doesn't stop advertisement — only Hellos).

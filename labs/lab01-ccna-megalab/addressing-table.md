@@ -1,6 +1,6 @@
 # Addressing Table — Lab 01 CCNA Megalab
 
-> **Last reviewed:** 2026-10-05. Network-device addresses are taken from the harvested configs where available; WLC, server, and Kali details use the source noted in their sections. Known deviations are labeled rather than presented as intended design.
+> **Last reviewed:** 2026-10-06. Network-device addresses are taken from the harvested configs where available; WLC, server, and Kali details use the source noted in their sections. Known deviations are labeled rather than presented as intended design.
 
 ---
 
@@ -10,16 +10,16 @@ VLAN numbers are locally significant. The same VLAN ID can have a different subn
 
 | Site | VLAN | Subnet and mask | HSRP gateway | Purpose |
 |------|-----:|-----------------|--------------|---------|
-| Office A | 10 | `10.1.0.0/24` (`255.255.255.0`) | `10.1.0.1` | PCs / management clients |
+| Office A | 10 | `10.1.0.0/24` (`255.255.255.0`) | `10.1.0.1` | User/data clients |
 | Office A | 20 | `10.2.0.0/24` (`255.255.255.0`) | `10.2.0.1` | Staff / voice |
 | Office A | 40 | `10.6.0.0/24` (`255.255.255.0`) | `10.6.0.1` | Wireless clients |
-| Office B | 10 | `10.3.0.0/24` (`255.255.255.0`) | `10.3.0.1` | PCs / management clients |
+| Office B | 10 | `10.3.0.0/24` (`255.255.255.0`) | `10.3.0.1` | User/data clients |
 | Office B | 20 | `10.4.0.0/24` (`255.255.255.0`) | `10.4.0.1` | Staff |
 | Office B | 30 | `10.5.0.0/24` (`255.255.255.0`) | `10.5.0.1` | Servers / staff |
 | Office A | 99 | `10.0.0.0/28` (`255.255.255.240`) | `10.0.0.1` | Network management, including WLC `10.0.0.7` |
 | Office B | 99 | `10.0.0.16/28` (`255.255.255.240`) | `10.0.0.17` | Network management |
-| Both sites | 1000 | — | — | Unused native VLAN on trunks |
-| Both sites | 999 | — | — | Unused/blackhole ports |
+| Both sites | 1000 | — | — | Configured as trunk native VLAN; explicit VLAN database entry unverified |
+| Both sites | 999 | — | — | Parking/blackhole VLAN shown on topology; presence in harvested configs unverified |
 
 ### How the masks divide the address space
 
@@ -102,17 +102,19 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ---
 
+The tables below list configured HSRP priorities, not observed runtime roles. In particular, DSW-A2's VLAN 10, 20, and 40 SVIs are administratively down in its harvested config.
+
 ## Distribution Layer — Office A (DSW-A1)
 
-| Interface | IPv4 Address | HSRP Group | VIP | Priority | Source |
+| Interface | IPv4 Address | HSRP Group | VIP | Configured priority | Source |
 |-----------|--------------|------------|-----|----------|--------|
 | Loopback0 | 10.0.0.79/32 | — | — | — | DSW-A1.txt |
 | e1/1 | 10.0.0.46/30 | — | — | — | DSW-A1.txt |
 | e1/2 | 10.0.0.62/30 | — | — | — | DSW-A1.txt |
-| Vlan10 | 10.1.0.2/24 | 2 | 10.1.0.1 | 105 (active) | DSW-A1.txt |
+| Vlan10 | 10.1.0.2/24 | 2 | 10.1.0.1 | 105 (preferred) | DSW-A1.txt |
 | Vlan20 | 10.2.0.2/24 | 3 | 10.2.0.1 | default | DSW-A1.txt |
 | Vlan40 | 10.6.0.2/24 | 4 | 10.6.0.1 | default | DSW-A1.txt |
-| Vlan99 | 10.0.0.2/28 | 1 | 10.0.0.1 | 105 (active) | DSW-A1.txt |
+| Vlan99 | 10.0.0.2/28 | 1 | 10.0.0.1 | 105 (preferred) | DSW-A1.txt |
 
 **STP:** Root for VLAN 10, 99 (priority 0). Secondary for VLAN 20, 40 (priority 4096).
 **EtherChannel:** Po1 with DSW-A2, PAgP desirable (e0/0 + e0/1).
@@ -122,14 +124,14 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ## Distribution Layer — Office A (DSW-A2)
 
-| Interface | IPv4 Address | HSRP Group | VIP | Priority | Source |
+| Interface | IPv4 Address | HSRP Group | VIP | Configured priority | Source |
 |-----------|--------------|------------|-----|----------|--------|
 | Loopback0 | 10.0.0.80/32 | — | — | — | DSW-A2.txt |
 | e1/1 | 10.0.0.50/30 | — | — | — | DSW-A2.txt |
 | e1/2 | 10.0.0.66/30 | — | — | — | DSW-A2.txt |
 | Vlan10 | 10.1.0.3/24 | 2 | 10.1.0.1 | default | DSW-A2.txt |
-| Vlan20 | 10.2.0.3/24 | 3 | 10.2.0.1 | 105 (active) | DSW-A2.txt |
-| Vlan40 | 10.6.0.3/24 | 4 | 10.6.0.1 | 105 (active) | DSW-A2.txt |
+| Vlan20 | 10.2.0.3/24 | 3 | 10.2.0.1 | 105 (preferred; SVI down) | DSW-A2.txt |
+| Vlan40 | 10.6.0.3/24 | 4 | 10.6.0.1 | 105 (preferred; SVI down) | DSW-A2.txt |
 | Vlan99 | 10.0.0.3/28 | 1 | 10.0.0.1 | default | DSW-A2.txt |
 
 **STP:** Root for VLAN 20, 40 (priority 0). Secondary for VLAN 10, 99 (priority 4096).
@@ -140,15 +142,15 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ## Distribution Layer — Office B (DSW-B1)
 
-| Interface | IPv4 Address | HSRP Group | VIP | Priority | Source |
+| Interface | IPv4 Address | HSRP Group | VIP | Configured priority | Source |
 |-----------|--------------|------------|-----|----------|--------|
 | Loopback0 | 10.0.0.81/32 | — | — | — | DSW-B1.txt |
 | e1/1 | 10.0.0.54/30 | — | — | — | DSW-B1.txt |
 | e1/2 | 10.0.0.70/30 | — | — | — | DSW-B1.txt |
-| Vlan10 | 10.3.0.2/24 | 2 | 10.3.0.1 | 105 (active) | DSW-B1.txt |
+| Vlan10 | 10.3.0.2/24 | 2 | 10.3.0.1 | 105 (preferred) | DSW-B1.txt |
 | Vlan20 | 10.4.0.2/24 | 3 | 10.4.0.1 | default | DSW-B1.txt |
 | Vlan30 | 10.5.0.2/24 | 4 | 10.5.0.1 | default | DSW-B1.txt |
-| Vlan99 | 10.0.0.18/28 | 1 | 10.0.0.17 | 105 (active) | DSW-B1.txt |
+| Vlan99 | 10.0.0.18/28 | 1 | 10.0.0.17 | 105 (preferred) | DSW-B1.txt |
 
 **STP:** Root for VLAN 10, 99 (priority 0). Secondary for VLAN 20, 30 (priority 4096).
 **EtherChannel:** Po1 with DSW-B2, LACP active (e0/0 + e0/1).
@@ -157,14 +159,14 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 
 ## Distribution Layer — Office B (DSW-B2)
 
-| Interface | IPv4 Address | HSRP Group | VIP | Priority | Source |
+| Interface | IPv4 Address | HSRP Group | VIP | Configured priority | Source |
 |-----------|--------------|------------|-----|----------|--------|
 | Loopback0 | 10.0.0.82/32 | — | — | — | DSW-B2.txt |
 | e1/1 | 10.0.0.58/30 | — | — | — | DSW-B2.txt |
 | e1/2 | 10.0.0.74/30 | — | — | — | DSW-B2.txt |
 | Vlan10 | 10.3.0.3/24 | 2 | 10.3.0.1 | default | DSW-B2.txt |
-| Vlan20 | 10.4.0.3/24 | 3 | 10.4.0.1 | 105 (active) | DSW-B2.txt |
-| Vlan30 | 10.5.0.3/24 | 4 | 10.5.0.1 | 105 (active) | DSW-B2.txt |
+| Vlan20 | 10.4.0.3/24 | 3 | 10.4.0.1 | 105 (preferred) | DSW-B2.txt |
+| Vlan30 | 10.5.0.3/24 | 4 | 10.5.0.1 | 105 (preferred) | DSW-B2.txt |
 | Vlan99 | 10.0.0.19/28 | 1 | 10.0.0.17 | default | DSW-B2.txt |
 
 **STP:** Root for VLAN 20, 30 (priority 0). Secondary for VLAN 10, 99 (priority 4096).
@@ -222,7 +224,7 @@ No IPv6 addresses are configured on the distribution/access switches, their SVIs
 All devices use `10.5.0.4` as name-server and `SankeyLab` as domain-name (confirmed in all device configs).
 
 > **SSH note:** OpenSSH not installed on WIN-SV1. HTTPS download blocked by PNetLab MTU limitation.
-> Access via `impacket-smbexec` from Kali works: `impacket-smbexec SANKEYLAB/Sankey:Test123@10.5.0.4`
+> Access via `impacket-smbexec` from Kali works; use the credentials provided through the authorized local workflow. For example: `impacket-smbexec <domain>/<user>:<password>@10.5.0.4`
 > RDP also available on port 3389.
 
 ---
@@ -235,7 +237,7 @@ All devices use `10.5.0.4` as name-server and `SankeyLab` as domain-name (confir
 | eth2 | 10 | 10.1.0.13/24 | User/access VLAN — source IP for device SSH |
 
 **Connected to:** ASW-A1 (visible in topology as "Linux" node)
-**PNetLab access:** `ssh kali@192.168.146.129 -p 30067` (user: kali / pass: kali)
+**PNetLab access:** `ssh kali@192.168.146.129 -p 30067` (use the authorized local account credentials; passwords are intentionally omitted)
 **SSH to devices:** Must bind to `10.1.0.14` (eth2) as source — legacy Kex/HostKey/Ciphers required for Cisco IOL.
 **Jump path to Office B ASWs:** Kali (10.1.0.14) → DSW-B1 (10.3.0.2) → ASW-B1/B2/B3
 
