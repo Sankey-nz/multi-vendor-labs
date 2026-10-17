@@ -320,21 +320,22 @@ Step 5: Save WLC Config
 
 ## 🎓 Lab Complete — NetBridge Deployment Summary
 
-> [!NOTE] What Was Built Across 9 Parts
+### What Was Built Across 9 Parts
 
 | Part | What Was Configured |
 |---|---|
 | P01 | Hostname, enable secret, local user, console login — every device |
 | P02 | EtherChannel (PAgP/LACP), trunking, DTP disabled, native VLAN, VLANs, access ports; VTP is a concept example, not explicitly configured |
 | P03 | `ip routing`, SVIs, L3 EtherChannel, loopbacks, HSRP v2 (split active/standby) |
-| P04 | Rapid PVST+, STP root = HSRP active per VLAN, PortFast + BPDU Guard |
+| P04 | Rapid PVST+, configured STP roots aligned with HSRP priorities, PortFast + BPDU Guard on selected ports |
 | P05 | OSPF Area 0, passive interfaces, point-to-point links, default-route advertisement; IPv4 default learned by DHCP, static-route failover is a concept example |
-| P06 | DHCP pools + relay, NTP auth, SNMP, Syslog, FTP IOS upgrade, SSH v2 + ACL, static NAT + PAT, CDP→LLDP |
+| P06 | DHCP pools + relay, DNS, NTP authentication settings, SNMP, Syslog, SSHv2, PAT, CDP→LLDP; FTP image upgrade and static NAT are not present in the harvested configs |
 | P07 | Extended ACL (both HSRP switches), Port Security (sticky, restrict), DHCP Snooping (no option 82), DAI |
 | P08 | `ipv6 unicast-routing`, three addressing methods (manual/EUI-64/link-local), IPv6 floating static |
 | P09 | WLC/WLAN concepts and verification workflow; AP registration and client service remain unverified |
 
-> [!TIP] Jeremy's Grading Reminders
-> 1. `write memory` on **every device** after every part
-> 2. Match **names exactly** — hostnames, ACL names, VTP domain, pool names
-> 3. If under 100%: *Check Results → Assessment Items → Show Incorrect Items*
+### Grading Reminders
+
+1. Save each device's configuration after the relevant changes.
+2. Match names exactly when following an assessment: hostnames, ACL names, VTP domain, and pool names.
+3. If using an assessment tool, check its incorrect items and compare them with the intended design and live configuration.
