@@ -1,19 +1,22 @@
 # P04 — Rapid Spanning Tree (RSTP)
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Switch from classic PVST+ to Rapid PVST+, align STP root with HSRP active router, and protect end-host ports with PortFast + BPDU Guard
 > **NetBridge Scenario:** The switching topology uses Rapid PVST+ on access and distribution switches, with STP root placement aligned to configured HSRP preference. Convergence depends on the topology and failure; verify actual behavior rather than assuming a fixed recovery time.
 > **Key Concepts:** Rapid PVST+, STP root election, priority values (multiples of 4096), PortFast, BPDU Guard, STP/HSRP alignment
 > **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2, ASW-B3
 
-> [!IMPORTANT] Live-state note
+> [!IMPORTANT]
+> **Live-state note**
 > Rapid PVST+ and root priorities are configured on the distribution and access switches. The core switches use PVST mode but are routed at Layer 3, not part of the switching STP topology. DSW-A2's VLAN 10, 20, and 40 SVIs are administratively down, so configured STP/HSRP alignment does not prove operational gateway failover. PortFast/BPDU Guard coverage varies by access port; verify each interface.
 
 ---
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > STP prevents loops by blocking redundant links. The root bridge is the "centre of the tree" — all traffic flows toward it. If the STP root and HSRP active are on different switches, traffic takes a detour: hosts send to the HSRP gateway (DSW-A1) but STP forces traffic through DSW-A2 first. Aligning them eliminates the detour.
 
 ```
@@ -36,7 +39,8 @@ Host → DSW-A1 directly (STP root AND HSRP active) → router
 
 ### Section 1 — Enable Rapid PVST+
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > The default STP mode depends on the platform and image; verify it with `show spanning-tree` before changing it. **Rapid PVST+** uses the rapid spanning-tree protocol per VLAN and can converge faster than classic PVST+, depending on topology and failure type.
 
 **Verify the current mode first:**
@@ -66,7 +70,8 @@ spanning-tree mode rapid-pvst
 
 ### Section 2 — STP Root Election and Priority
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > The **root bridge** is elected by lowest **Bridge ID** = Priority + MAC address. Priority is configured in increments of **4096** (STP only accepts multiples of 4096). Setting priority 0 guarantees root; 4096 guarantees backup root.
 
 **Priority values:**
@@ -106,7 +111,8 @@ spanning-tree vlan 99 priority 4096
 | 40 (Wi-Fi clients) | DSW-A2 | DSW-A2 (priority 0) | DSW-A1 | DSW-A1 (priority 4096) |
 | 99 (Mgmt) | DSW-A1 | DSW-A1 (priority 0) | DSW-A2 | DSW-A2 (priority 4096) |
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - STP priority MUST be a multiple of 4096 — any other value is rejected with an error
 > - Priority 0 is the lowest configurable value; when priorities tie, the Bridge ID (including MAC address) breaks the tie
 > - `spanning-tree vlan X root primary` is a macro that automatically sets priority to 24576 (or lower if needed) — less precise than setting 0 explicitly
@@ -115,7 +121,8 @@ spanning-tree vlan 99 priority 4096
 
 ### Section 3 — PortFast on Access Ports
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **PortFast** skips the Listening and Learning states on a port — it goes directly to Forwarding. This is safe on ports connected to end devices (PCs, phones) because they can never create a loop.
 
 **Without PortFast:** PC connects → port waits 30 seconds (Listening 15s + Learning 15s) → then forwards. DHCP requests during this time are dropped — host gets no IP.
@@ -134,14 +141,16 @@ interface GigabitEthernet0/1
  exit
 ```
 
-> [!WARNING] PortFast on Trunks
+> [!WARNING]
+> **PortFast on Trunks**
 > Normally PortFast is for access ports only. The WLC uplink is a trunk but it connects to a WLC (not another switch) — so PortFast is safe and necessary. Use `spanning-tree portfast trunk` for trunk ports that face non-switch devices.
 
 ---
 
 ### Section 4 — BPDU Guard
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **BPDU Guard** shuts a PortFast-enabled port immediately if it receives a **BPDU** (Bridge Protocol Data Unit — the STP control packet). A PortFast port receiving a BPDU means someone plugged in a switch, which could create a loop.
 
 ```
@@ -173,7 +182,8 @@ errdisable recovery cause bpduguard
 errdisable recovery interval 30
 ```
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - BPDU Guard + PortFast is the standard combination for all host-facing ports
 > - An err-disabled port shows `err-disabled` in `show interfaces status`
 > - BPDU Guard does NOT protect against physical loops without PortFast — it only fires on PortFast-enabled ports
@@ -185,7 +195,8 @@ errdisable recovery interval 30
 > [!NOTE]
 > These are templates, not complete harvested configurations. Confirm the actual interface names and connected device before applying PortFast or BPDU Guard.
 
-> [!TIP] ASW-A1 — Complete Part 4 Configuration
+> [!TIP]
+> **ASW-A1 — Complete Part 4 Configuration**
 
 ```
 ! === ASW-A1 — Rapid PVST + PortFast + BPDU Guard ===
@@ -208,7 +219,8 @@ interface GigabitEthernet0/3
 write memory
 ```
 
-> [!TIP] DSW-A1 — Complete Part 4 Configuration
+> [!TIP]
+> **DSW-A1 — Complete Part 4 Configuration**
 
 ```
 ! === DSW-A1 — Rapid PVST + STP Root ===
@@ -244,7 +256,8 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **`show spanning-tree` shows `ieee`** — still on classic PVST+; forgot `spanning-tree mode rapid-pvst`
 > - **STP root ≠ HSRP active** — causes suboptimal traffic paths; always align the two per VLAN
 > - **Priority not a multiple of 4096** — IOS rejects invalid values with an error message
@@ -272,7 +285,8 @@ write memory
 
 ## 🛠️ Practice Tasks
 
-> [!CAUTION] Practice safely
+> [!CAUTION]
+> **Practice safely**
 > Connecting switches, forcing BPDU Guard, or changing STP priorities can interrupt service. Use an isolated copy or agreed maintenance window, confirm recovery access, and restore the prior configuration after each exercise.
 
 1. **STP mode verification:** Before changing anything, run `show spanning-tree` on an access switch. Identify the mode (look for `ieee` = PVST+ or `rstp` = Rapid PVST+). Change to Rapid PVST+ and verify the output changes.

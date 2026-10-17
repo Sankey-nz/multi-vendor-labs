@@ -1,19 +1,22 @@
 # P05 — OSPF & Static Routing
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Study OSPF Area 0, default-route advertisement, and static-route failover concepts
 > **NetBridge Scenario:** VLANs have IPs and gateways — routing connects subnets and provides a path upstream. The live lab uses OSPF Area 0 and advertises a default route; R1's IPv4 default is learned by DHCP, while static-route failover is a separate practice concept.
 > **Key Concepts:** OSPF process, Area 0, router ID, `network` command, passive interfaces, `network-type point-to-point`, default route, `default-information originate`, floating static route, AD
 > **Devices involved:** R1, CSW1, CSW2, DSW-A1, DSW-A2, DSW-B1, DSW-B2
 
-> [!IMPORTANT] Current lab versus lesson example
+> [!IMPORTANT]
+> **Current lab versus lesson example**
 > OSPF Area 0 and `default-information originate` are present in the harvested configs. R1's **IPv4** default route is learned through DHCP on Gi0/3; there is no IPv4 static/floating default route in the captured config. The static-route sections below are standalone learning examples, not a description of the live IPv4 failover setup. The live lab does have primary and floating **IPv6** defaults; see [P08](./P08-IPv6.md).
 
 ---
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > OSPF is the "GPS system" — it discovers routes and shares them across the network. Static routes are manually configured paths. A floating static can serve as a backup in a design that uses static routes; R1's live IPv4 default in this lab is learned through DHCP, not a floating static.
 
 ```
@@ -38,7 +41,8 @@ Internet
 
 ### Section 1 — OSPF Basic Configuration (All L3 Devices)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **OSPF** (Open Shortest Path First) is a **link-state** routing protocol — every router builds a complete map of the network (LSDB) and independently runs Dijkstra's algorithm to find the best path. Process number is **locally significant** (doesn't need to match between devices).
 
 ```
@@ -97,7 +101,8 @@ router ospf 1
 
 ### Section 2 — Passive Interfaces
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **Passive interface** stops OSPF Hello packets on an interface — it still advertises the network into OSPF but doesn't try to form neighbors. Used on loopbacks (can't have neighbors) and user-facing SVIs (hosts aren't OSPF routers).
 
 **Guidance for distribution switches:**
@@ -120,7 +125,8 @@ router ospf 1
 
 ### Section 3 — OSPF Network Type Point-to-Point
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > On broadcast links (Ethernet), OSPF elects a **DR** (Designated Router) and **BDR** to reduce OSPF traffic. On a direct link between two switches, DR/BDR election is unnecessary overhead. `network type point-to-point` skips the election entirely.
 
 ```
@@ -139,14 +145,16 @@ interface Port-channel1
  exit
 ```
 
-> [!WARNING] Exam Flag 🎯
+> [!WARNING]
+> **Exam Flag 🎯**
 > On a point-to-point network type, OSPF adjacency goes directly to **Full** state without DR/BDR election. On a broadcast link without `point-to-point`, the state progression is: Down → Init → 2-Way → Exstart → Exchange → Loading → **Full** (only with DR/BDR). Using `point-to-point` on direct links speeds up convergence.
 
 ---
 
 ### Section 4 — Static Default-Route Failover (Concept Example)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **Concept example only:** Two static default routes can provide primary/backup paths when both next hops and link-failure behavior are known. This is not how the harvested R1 IPv4 route is configured.
 
 **Administrative Distance (AD):**
@@ -178,7 +186,8 @@ ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 203.0.113.5 2
 - **Recursive** (`ip route 0.0.0.0 0.0.0.0 203.0.113.1`) — R1 must look up `203.0.113.1` to find the exit interface. If ISP A's link goes down, the recursive lookup fails → route disappears → floating static activates. ✅
 - **Fully-specified** (`ip route ... GigabitEthernet0/0/1 203.0.113.5 2`) — always in the table as long as the interface is up. Used for the floating backup so it stays ready.
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - Floating static AD must be **higher** than the primary route's AD (1 for static; 110 for OSPF)
 > - `default-information originate` injects a Type 5 LSA (external) into OSPF — only works if R1 has a default route in its routing table
 > - `default-information originate always` injects the default route even if R1 has no default route — useful for testing but risky in production
@@ -187,7 +196,8 @@ ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 203.0.113.5 2
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!TIP] R1 — OSPF and Current IPv4 Default Route
+> [!TIP]
+> **R1 — OSPF and Current IPv4 Default Route**
 
 ```
 ! === R1 — live IPv4 default route and OSPF config ===
@@ -220,7 +230,8 @@ interface GigabitEthernet0/1
 write memory
 ```
 
-> [!TIP] DSW-A1 — Complete Part 5 Configuration
+> [!TIP]
+> **DSW-A1 — Complete Part 5 Configuration**
 
 ```
 ! === DSW-A1 — OSPF ===
@@ -269,7 +280,8 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **`network` command wildcard wrong** — `0.0.0.0` wildcard matches exactly one IP (/32); using `0.0.0.255` would match the whole /24 (may activate unwanted interfaces)
 > - **Missing `passive-interface`** — OSPF sends Hellos on host-facing ports; hosts aren't OSPF routers → Hellos waste bandwidth and confuse debugging
 > - **`default-information originate` with no default route** — without `always` keyword, R1 won't inject the default if it doesn't have one; verify with `show ip route 0.0.0.0`
@@ -298,7 +310,8 @@ write memory
 
 ## 🛠️ Practice Tasks
 
-> [!CAUTION] Practice safely
+> [!CAUTION]
+> **Practice safely**
 > Route/link failure tests can interrupt connectivity. Use an isolated copy or an agreed maintenance window, record the original state, and restore every changed route or interface after testing.
 
 1. **OSPF neighbor verification:** After configuring OSPF, run `show ip ospf neighbor` on every device. Verify all expected neighbors appear in FULL state. Troubleshoot any that are stuck in INIT or 2-WAY.

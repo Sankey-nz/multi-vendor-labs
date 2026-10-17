@@ -1,6 +1,7 @@
 # P01 — Initial Setup & Device Hardening
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Baseline security hardening on every router and switch before any network config
 > **SankeyLab Scenario:** Before configuring VLANs or routes, establish a consistent identity and secure management access on each network device.
 > **Key Concepts:** `hostname`, `enable secret` (type 9 vs type 5), local user accounts, console line security, `write memory`
@@ -10,7 +11,8 @@
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > Part 1 establishes a baseline: identify the device, secure administrative access, and save the configuration. No VLAN or routing changes are made here.
 
 ```
@@ -22,7 +24,8 @@ Every device in the topology:
   write memory → saves the current running-config to startup-config
 ```
 
-> [!WARNING] Save Deliberately
+> [!WARNING]
+> **Save Deliberately**
 > `write memory` saves the current running configuration so it persists after a restart. In a live lab, save after a verified change; do not assume an external grader or evaluator is present.
 
 ---
@@ -31,7 +34,8 @@ Every device in the topology:
 
 ### Section 1 — Hostname
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > Use one consistent hostname per device so command output, diagrams, and configuration files can be correlated. IOS hostnames are case-preserving; case alone is not normally a functional difference.
 
 ```
@@ -44,7 +48,8 @@ hostname DSW-A1
 
 ### Section 2 — Enable Secret (Privileged Mode Password)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > `enable secret` hashes the password before storing it in the config — unlike `enable password` which stores it in plaintext (or weak Type 7 reversible encoding). Use **type 9** (SCRYPT) if the platform supports it.
 
 ```
@@ -63,14 +68,16 @@ enable secret class
 | Type 8 | PBKDF2-SHA256 | Strong |
 | **Type 9** | **SCRYPT** | **Strongest — use this** |
 
-> [!WARNING] Exam Flag
+> [!WARNING]
+> **Exam Flag**
 > `enable secret` always wins over `enable password` if both are configured. In the config you'll see `enable secret 9 $9$...` for SCRYPT or `enable secret 5 $1$...` for MD5.
 
 ---
 
 ### Section 3 — Local User Account
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > A local user account can authenticate console or SSH access. Choose a unique, strong secret for your own lab; do not reuse credentials from examples or publish real secrets in configuration files.
 
 ```
@@ -84,7 +91,8 @@ username <local-user> privilege 15 algorithm-type scrypt secret <strong-secret>
 
 ### Section 4 — Console Line Hardening
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > By default the console line has no password — anyone with physical access gets in. `login local` forces credential verification against the local user database.
 
 ```
@@ -100,7 +108,8 @@ line console 0
 
 ### Section 5 — Save Configuration
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > These commands save running-config to startup-config (NVRAM). Use a form supported by the device and verify the save succeeded.
 
 ```
@@ -114,14 +123,16 @@ write memory
 do write
 ```
 
-> [!TIP] Verify the Save
+> [!TIP]
+> **Verify the Save**
 > After saving, compare the relevant section of `show running-config` and `show startup-config`. Saving does not verify that the configuration is correct or operational.
 
 ---
 
 ### Section 6 — Discovery Protocols (CDP & LLDP)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > Discovery protocols allow devices to share information (hostname, IP, capabilities) with neighbors. **CDP** is Cisco proprietary; **LLDP** is the industry standard (IEEE 802.1AB) used for multi-vendor environments.
 
 ```
@@ -141,7 +152,8 @@ interface GigabitEthernet0/0
 
 ## 🖥️ NetBridge Applied — Full Config Block
 
-> [!TIP] Part 1 — Baseline Example (adapt for the device and image)
+> [!TIP]
+> **Part 1 — Baseline Example (adapt for the device and image)**
 
 ```
 ! === INITIAL SETUP — apply to EVERY device ===
@@ -202,7 +214,8 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **Wrong hostname** — confirm you are connected to the intended device before making changes
 > - **`enable password` instead of `enable secret`** — stores password in plaintext or weak Type 7; always use `enable secret`
 > - **Forgetting `write memory`** — most common single cause of lost points; make it a reflex after every device

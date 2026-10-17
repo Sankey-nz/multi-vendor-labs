@@ -1,6 +1,7 @@
 # P03 — IP Addressing, L3 EtherChannel & HSRP
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Assign IP addresses to all L3 interfaces, build the routed EtherChannel between core switches, and configure HSRP for redundant default gateways on each VLAN
 > **NetBridge Scenario:** With VLANs propagating cleanly, it's time to add Layer 3 — IP addresses on every SVI and routed interface, a routed EtherChannel linking the two core switches, and HSRP so hosts always have a working gateway even if one distribution switch fails.
 > **Key Concepts:** `ip routing`, SVIs, routed ports (`no switchport`), L3 EtherChannel, loopback interfaces, HSRP v2, virtual IP, priority, preempt
@@ -10,10 +11,12 @@
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > Part 3 configures routed interfaces on multilayer switches. HSRP provides virtual gateway addresses so hosts do not need to track which distribution switch is forwarding.
 
-> [!IMPORTANT] Live-state note
+> [!IMPORTANT]
+> **Live-state note**
 > Use [`addressing-table.md`](../lab01-ccna-megalab/addressing-table.md) as the source of truth for configured addresses and HSRP groups. This guide includes teaching examples, not a transcript. DSW-A2's VLAN 10, 20, and 40 SVIs are administratively shut down in the harvested config, so configured HSRP is not proof of operational failover.
 
 ```
@@ -35,7 +38,8 @@ Hosts in VLAN 10 → default gateway = HSRP Virtual IP (e.g. 10.1.0.1)
 
 ### Section 1 — Enable `ip routing` on Switches
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > By default, Cisco multilayer switches act as pure L2 devices. `ip routing` enables the routing engine — turning SVIs and routed ports into actual L3 interfaces that participate in routing.
 
 ```
@@ -43,14 +47,16 @@ Hosts in VLAN 10 → default gateway = HSRP Virtual IP (e.g. 10.1.0.1)
 ip routing
 ```
 
-> [!WARNING] Exam Flag 🎯
+> [!WARNING]
+> **Exam Flag 🎯**
 > Forgetting `ip routing` on a multilayer switch means SVIs have IP addresses but don't route traffic. Symptom: hosts can ping their own SVI but not reach other subnets.
 
 ---
 
 ### Section 2 — R1 Interface Configuration
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > R1 has two WAN links: Gi0/2 uses static IPv4 addressing and Gi0/3 receives IPv4 by DHCP. Two routed links connect R1 to the core. A **loopback interface** provides a stable address used as the OSPF router ID and DHCP relay target.
 
 ```
@@ -92,7 +98,8 @@ interface Loopback0
 
 ### Section 3 — Layer-3 EtherChannel (CSW1 ↔ CSW2)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > A **routed EtherChannel** (L3) bonds the physical links between core switches into one logical routed link — the IP address lives on the `Port-channel` interface, not the physical members.
 
 ```
@@ -122,14 +129,16 @@ interface Port-channel1
  exit
 ```
 
-> [!WARNING] Exam Flag 🎯
+> [!WARNING]
+> **Exam Flag 🎯**
 > On a multilayer switch, `no switchport` converts a port from switchport (L2) to routed port (L3). You cannot assign an IP to a switchport — the command will be rejected. Always `no switchport` first on L3 EtherChannel members.
 
 ---
 
 ### Section 4 — SVIs on Distribution Switches
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > A **Switch Virtual Interface (SVI)** is a virtual L3 interface for a VLAN — it acts as the default gateway for hosts in that VLAN. Each distribution switch gets an SVI per VLAN with a unique IP; HSRP adds the shared virtual IP on top.
 
 ```
@@ -164,7 +173,8 @@ This is an illustrative SVI configuration. In the harvested state, DSW-A2's VLAN
 
 ### Section 5 — HSRP v2
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **HSRP** (**Hot Standby Router Protocol**) creates a **virtual IP** shared between two routers. Hosts use the virtual IP as their default gateway — HSRP decides which physical router actually handles traffic. Only one router is **active** at a time; the other is **standby**.
 
 **HSRP key concepts:**
@@ -241,7 +251,8 @@ interface Vlan99
 | 40 Wi-Fi clients | 4 | DSW-A2 (105; SVI shut in recorded config) | DSW-A1 (100) |
 | 99 Network management | 1 | DSW-A1 (105) | DSW-A2 (100) |
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - HSRP virtual IP must be in the same subnet as the SVI IPs but NOT the same as any physical SVI IP
 > - `standby preempt` is essential — without it, DSW-A1 won't reclaim active role after recovering from a failure; DSW-A2 stays active permanently
 > - HSRP v2 group numbers: 0–4095 (v1 supports 0–255 only)
@@ -254,7 +265,8 @@ interface Vlan99
 > [!NOTE]
 > This is an illustrative configuration, not a full transcript. Compare device-specific interface state with the harvested configs before applying it.
 
-> [!TIP] DSW-A1 — Complete Part 3 Configuration
+> [!TIP]
+> **DSW-A1 — Complete Part 3 Configuration**
 
 ```
 ! === DSW-A1 — IP Addressing + HSRP ===
@@ -329,7 +341,8 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **Forgetting `ip routing`** — SVIs won't route; hosts can reach their SVI but nothing beyond
 > - **`no switchport` on wrong ports** — only use on uplink/EtherChannel member ports; access/trunk ports to hosts should remain switchports
 > - **HSRP virtual IP in wrong subnet** — it must be in the same subnet as the SVI addresses; VLAN 99 uses `/28` here, while user VLANs use `/24`

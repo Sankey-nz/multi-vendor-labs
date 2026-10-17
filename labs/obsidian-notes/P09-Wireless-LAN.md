@@ -1,19 +1,22 @@
 # P09 — Wireless LAN (WLC GUI)
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Learn the WLC GUI workflow for creating a dynamic interface and WLAN, then verify AP/client behavior.
 > **NetBridge Scenario:** Office A has VLAN 40, trunks, a DHCP pool, and a managed vWLC. The harvested configs confirm WLC management on VLAN 99, but do not verify AP registration, WLAN setup, or wireless-client service.
 > **Key Concepts:** WLC GUI (`https://`), dynamic interface (maps WLAN to VLAN), WLAN (SSID + security), LWAP association, WPA2-AES PSK, CAPWAP tunnel
 > **Devices involved:** WLC1, LWAP-A1, LWAP-A2 (access points), wireless clients
 
-> [!IMPORTANT] Live state and example values
+> [!IMPORTANT]
+> **Live state and example values**
 > The live WLC management address is `10.0.0.7/28` on VLAN 99; access it at `https://10.0.0.7`. Use credentials already assigned to your lab—none are documented here. VLAN 40 is the wireless-client network `10.6.0.0/24`, with gateway `10.6.0.1`. Dynamic-interface and WLAN values below are configuration guidance, not evidence those features are currently configured. AP registration and wireless-client connectivity remain unverified.
 
 ---
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > The WLC is the brain — all LWAPs are dumb radios that tunnel all traffic back to the WLC via CAPWAP. The WLC then forwards traffic into the correct VLAN via its dynamic interface. This is why the VLAN config (Part 2), DHCP pool with option 43 (Part 6), and WLC uplink trunk (Part 2) had to be done first.
 
 ```
@@ -37,7 +40,8 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 
 ## Live Config Evidence (Harvested 2026-09-14)
 
-> [!WARNING] Design Deviations — Lab Actuals Differ from Plan
+> [!WARNING]
+> **Design Deviations — Lab Actuals Differ from Plan**
 > The running lab differs from older walkthrough examples. The evidence below reflects what is configured; the guide values are illustrative unless explicitly marked as live.
 >
 > | Parameter | Planned (Note) | Actual (Running Lab) |
@@ -47,7 +51,8 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 > | WLC uplink switch | DSW-A1 | **ASW-A1** |
 > | WLC gateway | — | **`10.0.0.1`** |
 
-> [!TIP] Actual vWLC Wiring — ASW-A1 Port Assignments
+> [!TIP]
+> **Actual vWLC Wiring — ASW-A1 Port Assignments**
 >
 > | vWLC Port | ASW-A1 Port | Role |
 > |---|---|---|
@@ -56,7 +61,8 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 >
 > **Wiring fix lesson:** The vWLC came up unreachable because `g0/0/0` (service/OOB port) was patched instead of `g0/0/1` (data port). The management interface only communicates through the data port. Once the cable was moved to `Ethernet1/1`, management access via VLAN 99 was immediately confirmed.
 
-> [!NOTE] ASW-A1 Trunk Config Supporting the WLC (from running config)
+> [!NOTE]
+> **ASW-A1 Trunk Config Supporting the WLC (from running config)**
 >
 > **Ethernet0/2** — vWLC `g0/0/0` (service port, OOB):
 > ```
@@ -88,7 +94,8 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 >
 > Both ports are trunks allowing **VLAN 40 and VLAN 99** — VLAN 99 carries the WLC management interface (`10.0.0.7/28`, gateway `10.0.0.1`).
 
-> [!TIP] Key Takeaway
+> [!TIP]
+> **Key Takeaway**
 > In this lab the WLC management lives on **VLAN 99** (`10.0.0.x/28` subnet). Always verify the actual management IP and VLAN before attempting GUI access — `https://10.0.0.7` is the correct URL for this deployment.
 
 ---
@@ -97,7 +104,8 @@ Access Switch trunk → Distribution Switch SVI (VLAN 40, HSRP virtual IP)
 
 ### Section 1 — Access the WLC GUI
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > The WLC is managed via HTTPS web GUI — not CLI (for this lab). Navigate to the WLC's management IP from a PC on the Management VLAN.
 
 ```
@@ -107,14 +115,16 @@ https://10.0.0.7
 ! Enter the credentials configured in your lab.
 ```
 
-> [!WARNING] Always Use HTTPS
+> [!WARNING]
+> **Always Use HTTPS**
 > HTTP may not be enabled on the WLC by default. Use `https://` — if you get a certificate warning, accept it (self-signed cert in the lab).
 
 ---
 
 ### Section 2 — Create a Dynamic Interface (VLAN Mapping)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > A **dynamic interface** on the WLC maps a WLAN to a specific VLAN — it's the WLC-side configuration that connects Wi-Fi traffic to the wired VLAN infrastructure.
 
 **Navigation:** `Controller` → `Interfaces` → `New`
@@ -140,7 +150,8 @@ The WLC dynamic interface maps WLAN client traffic to VLAN 40. Do not reuse the 
 
 ### Section 3 — Create the WLAN
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > A **WLAN** is the WLC-side definition of an 802.11 wireless network — it defines the SSID, security, and which dynamic interface (VLAN) traffic goes to.
 
 **Navigation:** `WLANs` → `Create New` → `Go`
@@ -172,14 +183,16 @@ The WLC dynamic interface maps WLAN client traffic to VLAN 40. Do not reuse the 
 
 **Apply and Save.**
 
-> [!WARNING] WPA2-AES vs. WPA-TKIP
+> [!WARNING]
+> **WPA2-AES vs. WPA-TKIP**
 > **WPA2 with AES (CCMP)** is the current standard — use this. WPA with TKIP is deprecated and weak. In the WLC GUI, ensure WPA2 checkbox is ticked and AES is selected under encryption.
 
 ---
 
 ### Section 4 — Verify LWAP Association
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > After configuring the WLAN, lightweight APs should automatically discover the WLC (via option 43 from DHCP) and associate. Verify in the WLC GUI under the Monitor tab.
 
 **Navigation:** `Monitor` → `Summary` → check AP count
@@ -203,7 +216,8 @@ The WLC dynamic interface maps WLAN client traffic to VLAN 40. Do not reuse the 
 
 ### Section 5 — Save WLC Configuration
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > The WLC has its own save mechanism — completely separate from `write memory` on IOS devices. Always save through the GUI.
 
 **Navigation:** `Commands` → `Save Configuration` → `Save`
@@ -214,14 +228,16 @@ This is the WLC equivalent of `write memory` — without it, config is lost on W
 
 ### Section 6 — Validation Limits
 
-> [!NOTE] Current evidence
+> [!NOTE]
+> **Current evidence**
 > This is a PNetLab lab, not Packet Tracer. The harvested switch configs show VLAN 40 allowed on the WLC-facing trunk, and R1 has a Wi-Fi DHCP pool for `10.6.0.0/24`. That does not prove the WLC dynamic interface, WLAN, CAPWAP registration, or client DHCP path is working. Test each stage and record observed results rather than attributing failures to a simulator limitation.
 
 ---
 
 ## 🖥️ NetBridge Applied — GUI Click-Through Summary
 
-> [!TIP] Complete Part 9 — Step-by-Step GUI
+> [!TIP]
+> **Complete Part 9 — Step-by-Step GUI**
 
 ```
 Step 1: Open browser → https://10.0.0.7 → Login with lab-configured credentials
@@ -277,7 +293,8 @@ Step 5: Save WLC Config
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **Using HTTP instead of HTTPS** — WLC GUI may only be available via HTTPS; browser will show security warning (accept it)
 > - **WLAN mapped to Management interface** — all wireless traffic would go into VLAN 99; should use the `Wi-Fi` dynamic interface (VLAN 40)
 > - **WPA2 not enabled, only WPA** — WPA-TKIP is deprecated; verify WPA2 + AES (CCMP) is selected, not WPA + TKIP
@@ -305,7 +322,8 @@ Step 5: Save WLC Config
 
 ## 🛠️ Practice Tasks
 
-> [!CAUTION] Practice safely
+> [!CAUTION]
+> **Practice safely**
 > AP and WLAN tests can interrupt wireless access. Use an isolated copy or agreed maintenance window, record the original settings, and restore them after each exercise.
 
 1. **LWAP discovery trace:** Remove `option 43` from the Management VLAN DHCP pool on R1. Reboot a LWAP. Observe it failing to associate (check WLC Monitor → AP count = 0). Re-add option 43 and verify the LWAP re-associates.

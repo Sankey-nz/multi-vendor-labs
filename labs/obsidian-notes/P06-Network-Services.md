@@ -1,19 +1,22 @@
 # P06 — Network Services (DHCP, DNS, NTP, SNMP, SSH, NAT)
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Study DHCP, DNS, NTP, SNMP/Syslog, SSH, NAT, and service verification.
 > **NetBridge Scenario:** This guide combines concepts and example configurations. Several described services and examples are not present in the harvested lab configuration.
 > **Key Concepts:** DHCP pools, excluded addresses, relay (`ip helper-address`), NTP authentication, SNMP community strings, SSH v2, ACL + VTY, static NAT, dynamic PAT, NAT inside/outside
 > **Devices involved:** R1, DSW-A1, DSW-A2, DSW-B1, DSW-B2, WIN-SV1 (DNS), WLC1
 
-> [!IMPORTANT] Compare with the running configuration before using commands
+> [!IMPORTANT]
+> **Compare with the running configuration before using commands**
 > The harvested configs show DHCP pools on R1, DNS service at WIN-SV1 (`10.5.0.4`), an SNMP read-only community, syslog to `10.5.0.4`, and PAT through R1 Gi0/3. They do **not** establish that NTP is synchronized, an IOS image was upgraded by FTP, or static NAT exists. R1's `A-Mgmt` DHCP pool currently advertises `10.5.0.4` as its default router; the addressing table identifies `10.0.0.1` as the intended VLAN 99 gateway. Treat this as a live configuration discrepancy, not as an instruction to copy.
 
 ---
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > Part 6 is the "services layer" — all the things that make a network usable. For each service, identify the actual server, configure clients where needed, then verify end-to-end behavior.
 
 ```
@@ -31,7 +34,8 @@ NAT:     PAT overload via R1 Gi0/3; no static NAT shown
 
 ### Section 1 — DHCP on R1
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > R1 has DHCP pools for the listed client networks. **Excluded addresses** reserve IPs for network devices (routers, switches, SVIs). Pools define the network, gateway, DNS, and domain for each subnet. Compare each pool with the addressing table: the harvested `A-Mgmt` pool has a wrong default-router value (`10.5.0.4` instead of the planned `10.0.0.1`).
 
 ```
@@ -87,7 +91,8 @@ ip dhcp pool VLAN99_MGMT_A
 
 ### Section 2 — DHCP Relay (ip helper-address)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > DHCP uses broadcast — broadcasts don't cross router boundaries. `ip helper-address` on a distribution-switch SVI converts DHCP broadcasts into **unicast** packets directed at R1's loopback (`10.0.0.76`), allowing R1 to serve DHCP requests from any VLAN.
 
 ```
@@ -111,7 +116,8 @@ interface Vlan99
 ! Apply the same on DSW-A2, DSW-B1, DSW-B2 for their respective VLANs
 ```
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - `ip helper-address` goes on the **client-side SVI** (where hosts send DHCP requests), not on R1
 > - Using R1's **loopback** IP (not a physical interface IP) ensures relay works even if one path to R1 fails — loopback is always reachable via any OSPF path
 > - Verify with `show ip dhcp binding` on R1 — assigned leases appear here
@@ -120,7 +126,8 @@ interface Vlan99
 
 ### Section 3 — NTP (Concept Example)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **NTP** (Network Time Protocol) synchronises clocks. R1 is the **authoritative time source** with an authentication key — every device points to R1 and validates the key before accepting time updates.
 
 ```
@@ -138,7 +145,8 @@ ntp trusted-key 1
 ntp server 10.0.0.76 key 1    ! point to R1's loopback with key validation
 ```
 
-> [!WARNING] Exam Flag 🎯
+> [!WARNING]
+> **Exam Flag 🎯**
 > NTP authentication key must match exactly on both server and clients — including the key number (1), algorithm (md5), and passphrase. Mismatch = clients reject R1's time updates silently.
 
 The harvested R1 config does not show `ntp master` or an NTP server association. Client configs contain authentication-key settings, but that alone does not demonstrate a synchronized clock. Verify live with `show ntp status` and `show ntp associations`.
@@ -147,7 +155,8 @@ The harvested R1 config does not show `ntp master` or an NTP server association.
 
 ### Section 4 — SNMP and Syslog
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **SNMP** lets a management station poll device statistics. **Syslog** sends log messages to a collector. The harvested device configs contain SNMP and syslog settings, but manager polling and log receipt have not been verified.
 
 ```
@@ -175,14 +184,16 @@ logging buffered 8192                ! buffer 8 KB of logs locally too
 | 6 | Informational | Informational |
 | 7 | Debugging | All messages |
 
-> [!WARNING] Exam Flag 🎯
+> [!WARNING]
+> **Exam Flag 🎯**
 > `logging trap debugging` sends severity 7 and **all levels below it** (0–7) — everything. In production, use level 6 (informational) or lower to avoid overwhelming the syslog server.
 
 ---
 
 ### Section 5 — SSH Hardening (Concept Example)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > SSH v2 with a locally selected key size, restricted by an example ACL, applied to VTY lines with `login local` and `transport input ssh`. Check each device's VTY configuration before relying on the example.
 
 ```
@@ -213,7 +224,8 @@ line vty 0 15
  exit
 ```
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - `transport input ssh` disables Telnet on VTY — Telnet sends passwords in plaintext
 > - `ip ssh version 2` without `ip domain-name` and `crypto key generate rsa` first → SSH won't work
 > - ACL for SSH: applied with `access-class <acl> in` (not `ip access-group`) — `access-class` is specifically for VTY/Console lines
@@ -229,7 +241,8 @@ The harvested configs do not document an FTP-based IOS upgrade. This lab uses vi
 
 ### Section 7 — NAT on R1
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **NAT** translates private (RFC 1918) addresses for upstream access. The harvested R1 config has **PAT overload** on Gi0/3; it does not show a static NAT mapping or a public address pool.
 
 ```
@@ -286,7 +299,8 @@ Use the harvested [R1 configuration](../lab01-ccna-megalab/configs/R1.txt) and t
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **`ip helper-address` on wrong interface** — must be on the SVI that DHCP clients are in, not on R1's interface
 > - **`option 43` missing from management pool** — LWAPs won't find the WLC; they'll be stuck in discovery phase
 > - **NTP key mismatch** — check key number, algorithm, and passphrase are identical on all devices; NTP will appear to work but clock won't sync
@@ -321,7 +335,8 @@ Use the harvested [R1 configuration](../lab01-ccna-megalab/configs/R1.txt) and t
 
 ## 🛠️ Practice Tasks
 
-> [!CAUTION] Practice safely
+> [!CAUTION]
+> **Practice safely**
 > DHCP, SSH, routing, and service changes can lock out users or disrupt the lab. Perform failure tests in an isolated copy or agreed maintenance window, save a known-good backup, and restore the original config after each test.
 
 1. **DHCP relay test:** On a PC in VLAN 10, request a DHCP address. Verify on R1 with `show ip dhcp binding` that the lease appears. Remove `ip helper-address` from the SVI and retry — verify DHCP fails. Re-add and confirm recovery.

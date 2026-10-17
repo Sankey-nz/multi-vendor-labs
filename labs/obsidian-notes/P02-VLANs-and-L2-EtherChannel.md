@@ -1,12 +1,14 @@
 # P02 — VLANs & Layer-2 EtherChannel
 
-> [!NOTE] Part Summary
+> [!NOTE]
+> **Part Summary**
 > **Topic:** Bond redundant switch links and propagate VLANs cleanly across the access/distribution layers
 > **NetBridge Scenario:** The client's offices each have dual distribution switches for redundancy. Part 2 bonds selected links into EtherChannels, configures trunks, and assigns ports to VLANs. VTP is an optional concept example; it is not explicitly configured in the harvested lab. Inter-office reachability depends on routing and policy, not VLAN separation alone.
 > **Key Concepts:** EtherChannel (PAgP vs LACP), trunking, DTP, native VLAN security, VTP, VLAN assignment, PortFast/BPDU Guard on access ports
 > **Devices involved:** DSW-A1, DSW-A2, DSW-B1, DSW-B2, ASW-A1, ASW-A2, ASW-A3, ASW-B1, ASW-B2, ASW-B3
 
-> [!IMPORTANT] How to use the examples
+> [!IMPORTANT]
+> **How to use the examples**
 > The harvested configs confirm the VLANs, trunks, native VLAN 1000, PAgP on the Office A distribution pair, and LACP on the Office B pair. They do **not** contain explicit VTP configuration. The commands below are teaching examples; interface names and VLAN purposes must be checked against the live configs before use.
 > The trunks specify native VLAN ID 1000, but the harvested configs do not show an explicit VLAN 1000 database entry. Check `show vlan brief` on the running switches before describing that VLAN as active.
 
@@ -14,7 +16,8 @@
 
 ## 🗺️ Big Picture
 
-> [!TIP] Mental Model
+> [!TIP]
+> **Mental Model**
 > Think of Part 2 as building the roads before adding traffic lights (STP) or directions (routing). EtherChannels bundle links; VLANs separate Layer 2 broadcast domains. VTP is an optional VLAN-database distribution protocol, not a live dependency in this lab.
 
 ```
@@ -39,7 +42,8 @@ VLAN IDs are scoped locally to each Layer 2 site; VLAN 10 in Office A and VLAN 1
 
 ### Section 1 — EtherChannel: PAgP (Office A) and LACP (Office B)
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **EtherChannel** (**Link Aggregation**) bundles multiple physical links into one logical link, giving higher bandwidth and redundancy. Two negotiation protocols exist — **PAgP** (Cisco-proprietary) and **LACP** (IEEE 802.3ad open standard).
 
 **PAgP modes:**
@@ -87,7 +91,8 @@ interface range GigabitEthernet1/0/1 - 2
  exit
 ```
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - PAgP: **desirable-desirable** or **desirable-auto** forms a channel; **auto-auto** does NOT
 > - LACP: **active-active** or **active-passive** forms a channel; **passive-passive** does NOT
 > - `on` mode: forces EtherChannel with no negotiation — both sides must use `on`; never mix `on` with PAgP/LACP modes
@@ -96,7 +101,8 @@ interface range GigabitEthernet1/0/1 - 2
 
 ### Section 2 — Trunk Configuration on All Inter-Switch Links
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > Trunks carry **multiple VLANs** on a single physical link using 802.1Q tagging. Every link between access and distribution switches (including the new EtherChannels) must be trunked.
 
 **Key trunk settings:**
@@ -123,7 +129,8 @@ interface Port-channel1
 - If two trunks share the same native VLAN, an attacker can inject frames that "hop" between VLANs
 - Using a dedicated, otherwise-unused native VLAN reduces accidental exposure; it does not by itself eliminate VLAN-hopping risks. Keep trunk configuration consistent at both ends and use other layer-2 protections as appropriate.
 
-> [!WARNING] Exam Flags 🎯
+> [!WARNING]
+> **Exam Flags 🎯**
 > - Native VLAN mismatch between two trunk ends → CDP warning; traffic issues — both ends must match
 > - VLAN 1 is the default native VLAN — always change it
 > - `allowed vlan` list only — unlisted VLANs are pruned from the trunk; don't forget to include Management VLAN 99
@@ -132,7 +139,8 @@ interface Port-channel1
 
 ### Section 3 — VTP (VLAN Trunking Protocol)
 
-> [!NOTE] Learning concept — not configured in the harvested lab
+> [!NOTE]
+> **Learning concept — not configured in the harvested lab**
 > **VTP** can distribute VLAN database changes among switches in a VTP domain. This lab's harvested configs do not show explicit VTP domain, version, or server/client configuration. Do not assume VLANs are being synchronized by VTP; verify the VLAN database and trunks directly.
 
 ```
@@ -176,14 +184,16 @@ vtp version 2
 | 999 | Parking VLAN (topology label) | Not confirmed in harvested configs | Not confirmed in harvested configs |
 | 1000 | Configured native VLAN ID; VLAN database presence unverified | ✅ (trunk setting) | ✅ (trunk setting) |
 
-> [!WARNING] VTP Gotcha 🎯
+> [!WARNING]
+> **VTP Gotcha 🎯**
 > VTP revision numbers can cause unexpected VLAN database changes when switches join a domain. Before connecting a switch to a VTP domain, verify its mode, domain, version, and revision; use transparent/off mode when centralized VLAN propagation is not required.
 
 ---
 
 ### Section 4 — Access Port Configuration
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > **Access ports** carry only one VLAN and don't tag frames. End devices (PCs, phones, LWAPs) connect to access ports — they're unaware of VLAN tagging.
 
 ```
@@ -215,7 +225,8 @@ interface GigabitEthernet1/0/5
 
 ### Section 5 — Disable Unused Ports
 
-> [!NOTE] Key Concept
+> [!NOTE]
+> **Key Concept**
 > Any unused port is a potential security entry point — shut them all down as a baseline hygiene measure.
 
 ```
@@ -236,7 +247,8 @@ interface range GigabitEthernet1/0/10 - 24
 > [!NOTE]
 > These command blocks are practice templates, not harvested configs. In particular, do not configure VTP unless you have deliberately selected and verified a VTP design for an isolated exercise.
 
-> [!TIP] DSW-A1 — Complete Part 2 Configuration
+> [!TIP]
+> **DSW-A1 — Complete Part 2 Configuration**
 
 ```
 ! === DSW-A1 — VLANs & EtherChannel ===
@@ -283,7 +295,8 @@ vlan 1000
 write memory
 ```
 
-> [!TIP] ASW-A1 — Complete Part 2 Configuration
+> [!TIP]
+> **ASW-A1 — Complete Part 2 Configuration**
 
 ```
 ! === ASW-A1 — Access Switch ===
@@ -335,7 +348,8 @@ write memory
 
 ## ⚠️ Common Pitfalls
 
-> [!WARNING] Watch Out
+> [!WARNING]
+> **Watch Out**
 > - **`desirable-auto` works; `auto-auto` doesn't** — one side must be active/desirable
 > - **Forgetting `switchport nonegotiate`** — DTP still runs even in trunk mode without it; could be exploited
 > - **Native VLAN mismatch** — both sides of a trunk must have the same native VLAN or CDP alerts and VLAN tagging breaks
