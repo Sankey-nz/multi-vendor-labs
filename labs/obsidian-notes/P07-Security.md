@@ -36,7 +36,7 @@ DAI:
 
 ## Live Config Evidence (Harvested 2026-09-14)
 
-> [!check]
+> [!NOTE]
 > **Live Verification — configs harvested 2026-09-14, evidence section added 2026-09-21**
 >
 > ### ACLs — DSW-A1 and DSW-A2

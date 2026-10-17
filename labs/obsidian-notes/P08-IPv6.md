@@ -28,7 +28,7 @@ Three addressing methods demonstrated:
 
 ## Live Config Evidence (Harvested 2026-09-14)
 
-> [!check]
+> [!NOTE]
 > **Verified Live — R1, CSW1, CSW2 configs harvested Mon Sep 14 2026 07:32 UTC**
 >
 > ### ✅ ipv6 unicast-routing
