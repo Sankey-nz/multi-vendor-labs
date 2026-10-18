@@ -13,6 +13,8 @@
 
 The diagram shows the virtual lab topology across Office A and Office B. Both sites connect through a shared routed core (CSW1/CSW2) and edge router (R1). Each office has a distribution pair, access switches, and end hosts. The harvested configs include DHCP pools on R1. Older notes describe a Cisco vWLC in Office A and WIN-SV1 in Office B for domain and network services, but neither device has a committed config or captured show output.
 
+Lab 01 is Cisco-only. A FortiGate was planned and removed; other vendors are planned for later labs.
+
 ### Reading this lab
 
 1. Read the scenario and follow the diagram from R1 through the routed core to a site's distribution and access layers.
@@ -28,7 +30,7 @@ The lab is a learning environment, not a production deployment. Some exercises d
 
 **Scenario:** SankeyLab is a fictional company operating from two offices. It needs reliable communication between sites, separate networks for users, staff/voice, servers, wireless clients, and network management, and access to shared services and the Internet. The design must include redundancy, controlled access, and a way to verify and troubleshoot failures.
 
-**Engineering request:** Plan the IPv4 subnets and VLANs; build the routed and switched topology; configure redundancy, routing, services, security, IPv6, and wireless; then verify end-to-end connectivity and diagnose injected faults. The nine study parts break this work into manageable stages rather than isolated protocol demonstrations.
+**Engineering request:** Plan the IPv4 subnets and VLANs; build the routed and switched topology; configure redundancy, routing, services, security, IPv6, and wireless; then verify end-to-end connectivity and troubleshoot problems found during the build. The nine study parts break this work into manageable stages rather than isolated protocol demonstrations.
 
 This is a virtual lab built with PNetLab and Cisco IOL/IOSv software images—not a physical hardware deployment. The images are not distributed in this repository. Configurations use Cisco IOS-style commands, while the live-state notes call out where the current virtual lab differs from the original design or from a fully validated production network.
 
@@ -86,15 +88,15 @@ These are differences or limitations visible in the harvested configurations and
 
 ## How This Lab Was Built
 
-- **Lab design and scenario:** By Sankey Silva. Based on Jeremy's IT Lab CCNA Mega Lab, adapted into the two-office SankeyLab scenario.
-- **AI assistance:** GitHub Copilot and Kiro enhanced the design and helped with [config-harvest scripts / documentation audit / topology annotations / other - I will confirm].
-- **Verification and fault diagnosis:** Performed by [me / me with agent help - I will confirm].
+- Lab design and scenario: Built by Sankey Silva in PNetLab, following Jeremy's IT Lab CCNA Mega Lab. A FortiGate extension was planned to make the lab multi-vendor and was later removed.
+- AI assistance: GitHub Copilot and Kiro helped collect device configurations (Kali VM and Netmiko scripts), write the documentation, refine the design, and assist with troubleshooting, within the limits of the platform.
+- Verification: Connectivity was tested during the build. The notes separate what is configured from what is verified; wireless clients and end-to-end IPv6 are not verified.
 
 ## SECURITY-NOTES
 
 - These are lab-only devices and services; do not reuse their credentials in production.
 - Supply device credentials at run time through environment variables or interactive prompts. Do not commit `.env` files or real credential values.
-- Older Git commits may contain previous lab credentials. Those credentials have been changed; repository history has not been rewritten.
+- Older Git commits contain the lab-only credentials used while building this lab (isolated virtual devices on a private network, not exposed to the internet). Treat them as public. Repository history has not been rewritten.
 - Committed harvested configs have authentication directives and SNMP community values redacted. They remain useful as configuration evidence but are not complete device backups.
 
 ---
@@ -162,7 +164,6 @@ multi-vendor-labs/
         │   ├── topology.png
         │   ├── Screenshot 2026-10-04 220452.png
         │   ├── Screenshot 2026-10-04 230114.png
-        │   └── Screenshot 2026-10-04 23011400.png
         ├── configs/                 ← 13 harvested configs; credential lines redacted
         │   ├── R1.txt
         │   ├── CSW1.txt  CSW2.txt

@@ -33,4 +33,4 @@ The files in `configs/` are the source for claims about configured Cisco state. 
 
 Credential-aware utilities are under `scripts/`. Use `scripts/harvest/README.md` for environment-variable names and usage. The ASW-B collection utility is `scripts/harvest/harvest_aswb_v2.py`.
 
-Never store a real password, secret, SNMP community, PNetLab server address, or SSH forwarding detail in this file. Older Git commits may retain previous lab credentials; those credentials have been changed, and repository history has not been rewritten.
+Never store a real password, secret, SNMP community, PNetLab server address, or SSH forwarding detail in this file. Older Git commits may retain previous lab credentials; treat them as public. Repository history has not been rewritten.
