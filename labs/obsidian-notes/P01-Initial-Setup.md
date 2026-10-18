@@ -54,10 +54,10 @@ hostname DSW-A1
 
 ```
 ! Type 9 (SCRYPT — strongest, use if supported)
-enable algorithm-type scrypt secret class
+enable algorithm-type scrypt secret <strong-enable-secret>
 
 ! Type 5 (MD5 — fallback for older platforms)
-enable secret class
+enable secret <strong-enable-secret>
 ```
 
 **Type 9 vs Type 5:**
@@ -162,7 +162,7 @@ interface GigabitEthernet0/0
 hostname DSW-A1
 
 ! Step 2: Privileged mode password
-enable algorithm-type scrypt secret class
+enable algorithm-type scrypt secret <strong-enable-secret>
 
 ! Step 3: Local user account
 ! Use placeholders; configure a unique, strong secret locally.
@@ -203,7 +203,7 @@ write memory
 | Command | What to Look For |
 |---|---|
 | `show running-config \| include hostname` | Expected device name |
-| `show running-config \| include enable secret` | `enable secret 9 $9$...` (Type 9) or `enable secret 5 $1$...` (Type 5) |
+| `show running-config \| include enable secret` | The configured hash type and a hashed secret; do not publish the full output |
 | `show running-config \| include username` | The intended local username and a hashed secret; never paste the full output into a public report |
 | `show running-config \| section line con` | `login local` present |
 | `show startup-config \| include hostname` | Confirms the saved hostname matches the running configuration |

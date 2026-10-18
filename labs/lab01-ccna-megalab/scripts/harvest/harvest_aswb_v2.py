@@ -1,141 +1,134 @@
-"""
-harvest_aswb_v2.py
-------------------
-Harvest ASW-B1, ASW-B2, ASW-B3 using the exact manual path:
+"""Collect ASW-B1/B2/B3 through the documented Kali-to-DSW-B1 jump path."""
 
-  Windows (paramiko) -> Kali shell
-  Kali: ssh -oKexAlgorithms=+... -l cisco -b 10.1.0.14 10.3.0.2  (DSW-B1)
-  DSW-B1: ssh -l cisco 10.0.0.2x  (ASW-Bx)
-"""
+import shlex
+import sys
+import time
+from pathlib import Path
 
-import paramiko, time, os
+import paramiko
 
-KALI_HOST = '192.168.146.129'
-KALI_PORT = 30067
-KALI_USER = 'kali'
-KALI_PASS = 'kali'
-USERNAME  = 'cisco'
-PASSWORD  = 'CCNA'
-SECRET    = 'class'
-JUMP_IP   = '10.3.0.2'
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from runtime_credentials import cisco_credentials, kali_credentials, sanitize_config
 
-KALI_SSH  = (
-    'ssh -oKexAlgorithms=+diffie-hellman-group14-sha1 '
-    '-oHostKeyAlgorithms=+ssh-rsa '
-    '-oStrictHostKeyChecking=no '
-    f'-l {USERNAME} -b 10.1.0.14 {JUMP_IP}'
-)
 
-OUTPUT_DIR = r'C:\Users\Sankey\OneDrive\multi-vendor-labs\labs\lab01-ccna-megalab\configs'
-
+JUMP_IP = "10.3.0.2"
+KALI_SOURCE_IP = "10.1.0.14"
 TARGETS = [
-    ('ASW-B1', '10.0.0.20'),
-    ('ASW-B2', '10.0.0.21'),
-    ('ASW-B3', '10.0.0.22'),
+    ("ASW-B1", "10.0.0.20"),
+    ("ASW-B2", "10.0.0.21"),
+    ("ASW-B3", "10.0.0.22"),
 ]
 
 
 def recv_until(shell, markers, timeout=15):
-    buf = ''
+    buffer = ""
     deadline = time.time() + timeout
     while time.time() < deadline:
         time.sleep(0.3)
         if shell.recv_ready():
-            buf += shell.recv(65535).decode('utf-8', errors='ignore')
-            if any(m in buf for m in markers):
-                return buf
-    return buf
+            buffer += shell.recv(65535).decode("utf-8", errors="ignore")
+            if any(marker in buffer for marker in markers):
+                break
+    return buffer
 
 
-def harvest(name, target_ip):
-    print(f'\n[{name}] Connecting to Kali...')
+def accept_host_key_if_needed(shell, buffer):
+    if "yes/no" in buffer:
+        shell.send("yes\n")
+        return recv_until(shell, ["Password:", ">", "#"], timeout=10)
+    return buffer
+
+
+def enter_enable(shell, credentials):
+    shell.send("enable\n")
+    buffer = recv_until(shell, ["Password:", "#"], timeout=5)
+    if "Password:" in buffer:
+        shell.send(f'{credentials["secret"]}\n')
+        buffer = recv_until(shell, ["#"], timeout=5)
+    return buffer
+
+
+def harvest(name, target_ip, kali, credentials):
+    kali_host, kali_port, kali_user, kali_password = kali
+    print(f"\n[{name}] Connecting to the configured Kali endpoint...")
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(KALI_HOST, port=KALI_PORT, username=KALI_USER, password=KALI_PASS)
+    client.connect(
+        kali_host,
+        port=kali_port,
+        username=kali_user,
+        password=kali_password,
+    )
     shell = client.invoke_shell(width=200, height=200)
+    recv_until(shell, ["$", "#"], timeout=5)
 
-    # drain Kali prompt
-    recv_until(shell, ['$', '#'], timeout=5)
-
-    # Step 1: Kali -> DSW-B1 with legacy SSH flags
-    print(f'[{name}] Kali -> DSW-B1 ({JUMP_IP})...')
-    shell.send(KALI_SSH + '\n')
-    buf = recv_until(shell, ['Password:', 'yes/no'], timeout=15)
-    if 'yes/no' in buf:
-        shell.send('yes\n')
-        buf = recv_until(shell, ['Password:'], timeout=10)
-    shell.send(PASSWORD + '\n')
-    recv_until(shell, ['>'], timeout=10)
-
-    # Enable on DSW-B1
-    shell.send('enable\n')
-    buf = recv_until(shell, ['Password:', '#'], timeout=5)
-    if 'Password:' in buf:
-        shell.send(SECRET + '\n')
-        recv_until(shell, ['#'], timeout=5)
-
-    # Step 2: DSW-B1 -> ASW using plain cisco SSH (no extra flags)
-    print(f'[{name}] DSW-B1 -> {target_ip}...')
-    shell.send(f'ssh -l {USERNAME} {target_ip}\n')
-    buf = recv_until(shell, ['Password:', 'yes/no', '>'], timeout=15)
-    if 'yes/no' in buf:
-        shell.send('yes\n')
-        buf = recv_until(shell, ['Password:'], timeout=10)
-    if 'Password:' in buf:
-        shell.send(PASSWORD + '\n')
-        buf = recv_until(shell, ['>', '#'], timeout=10)
-
-    if '>' not in buf and '#' not in buf:
-        print(f'[{name}] ERROR: no ASW prompt. Got: {repr(buf[-150:])}')
+    jump_command = (
+        "ssh -oKexAlgorithms=+diffie-hellman-group14-sha1 "
+        "-oHostKeyAlgorithms=+ssh-rsa -oStrictHostKeyChecking=no "
+        f"-l {shlex.quote(credentials['username'])} "
+        f"-b {KALI_SOURCE_IP} {JUMP_IP}"
+    )
+    shell.send(f"{jump_command}\n")
+    buffer = accept_host_key_if_needed(
+        shell, recv_until(shell, ["Password:", "yes/no", ">", "#"], timeout=15)
+    )
+    if "Password:" in buffer:
+        shell.send(f'{credentials["password"]}\n')
+        buffer = recv_until(shell, [">", "#"], timeout=10)
+    if ">" not in buffer and "#" not in buffer:
         client.close()
-        return None
+        raise RuntimeError(f"{name}: no prompt from the DSW-B1 jump device.")
 
-    # Enable on ASW
-    if '>' in buf and '#' not in buf:
-        shell.send('enable\n')
-        buf = recv_until(shell, ['Password:', '#'], timeout=5)
-        if 'Password:' in buf:
-            shell.send(SECRET + '\n')
-            recv_until(shell, ['#'], timeout=5)
+    enter_enable(shell, credentials)
+    print(f"[{name}] Connecting from DSW-B1 to {target_ip}...")
+    shell.send(
+        f"ssh -l {shlex.quote(credentials['username'])} {target_ip}\n"
+    )
+    buffer = accept_host_key_if_needed(
+        shell, recv_until(shell, ["Password:", "yes/no", ">", "#"], timeout=15)
+    )
+    if "Password:" in buffer:
+        shell.send(f'{credentials["password"]}\n')
+        buffer = recv_until(shell, [">", "#"], timeout=10)
+    if ">" not in buffer and "#" not in buffer:
+        client.close()
+        raise RuntimeError(f"{name}: no prompt from the access switch.")
 
-    # Collect config
-    shell.send('terminal length 0\n')
+    if ">" in buffer and "#" not in buffer:
+        enter_enable(shell, credentials)
+
+    shell.send("terminal length 0\n")
     time.sleep(0.8)
-    shell.recv_ready() and shell.recv(65535)
-
-    print(f'[{name}] Collecting show running-config...')
-    shell.send('show running-config\n')
-    config = ''
+    if shell.recv_ready():
+        shell.recv(65535)
+    shell.send("show running-config\n")
+    config = ""
     deadline = time.time() + 45
     while time.time() < deadline:
         time.sleep(0.5)
         if shell.recv_ready():
-            chunk = shell.recv(65535).decode('utf-8', errors='ignore')
+            chunk = shell.recv(65535).decode("utf-8", errors="ignore")
             config += chunk
-            if '\nend\n' in chunk or chunk.strip().endswith('\nend'):
+            if "\nend\n" in config or config.rstrip().endswith("end"):
                 break
-
     client.close()
     return config
 
 
 def main():
+    kali = kali_credentials()
+    credentials = cisco_credentials()
+    output_dir = Path(__file__).resolve().parents[2] / "configs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     for name, ip in TARGETS:
-        config = harvest(name, ip)
-        if not config or len(config.strip()) < 100:
-            print(f'[{name}] FAILED - no config')
-            continue
-
-        hostname_lines = [l for l in config.splitlines() if l.startswith('hostname')]
-        print(f'[{name}] hostname line: {hostname_lines}')
-
-        out_path = os.path.join(OUTPUT_DIR, f'{name}.txt')
-        with open(out_path, 'w') as f:
-            f.write(config)
-        print(f'[{name}] Saved {len(config)} bytes -> {out_path}')
-
-    print('\nDone.')
+        config = harvest(name, ip, kali, credentials)
+        if len(config.strip()) < 100:
+            raise RuntimeError(f"{name}: no usable configuration was collected.")
+        destination = output_dir / f"{name}.txt"
+        destination.write_text(sanitize_config(config), encoding="utf-8")
+        print(f"[{name}] Saved sanitized configuration to {destination}.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -17,7 +17,6 @@ boot-start-marker
 boot-end-marker
 !
 !
-enable secret 9 $9$0upSqoEaz3uvzb$HOp/IKtl9rS9Kgezh3gGdVvezc/zYAgZrk1DRjSrKGk
 !
 no aaa new-model
 ethernet lmi ce
@@ -106,7 +105,6 @@ multilink bundle-name authenticated
 !
 !
 !
-username cisco secret 9 $9$XABTsle4gdFKQR$45l6OSfRjrHfRieu2MLdGh3t3W9RnAdloQyskQ6nM.w
 !
 redundancy
 !
@@ -198,7 +196,6 @@ logging host 10.5.0.4
 ipv6 route ::/0 GigabitEthernet0/2 2001:DB8:B::1 2
 ipv6 route ::/0 2001:DB8:A::1
 !
-snmp-server community SNMPSTRING RO
 snmp-server chassis-id 
 !
 access-list 1 permit 10.1.0.0 0.0.0.255
@@ -256,7 +253,6 @@ line vty 5 15
  transport input telnet ssh
 !
 no scheduler allocate
-ntp authentication-key 1 md5 141411050D 7
 ntp trusted-key 1
 ntp master 5
 ntp server 216.239.35.0

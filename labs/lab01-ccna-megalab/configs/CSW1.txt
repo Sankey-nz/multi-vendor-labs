@@ -16,9 +16,7 @@ boot-start-marker
 boot-end-marker
 !
 !
-enable secret 9 $9$7YSjTflT6UgmXt$3MzupATtTazTSi5tHBJ9jC4i7xbSczl8U7R7E8.DQCs
 !
-username cisco secret 9 $9$SolsnkLHSQgZKt$ScwhyWV84FEgBSp5dA4rWKQV8prmGcmnnPMWtAwpAg.
 no aaa new-model
 !
 !
@@ -212,7 +210,6 @@ line vty 0 4
  login local
  transport input ssh
 !
-ntp authentication-key 1 md5 0307580507 7
 ntp trusted-key 1
 !
 !

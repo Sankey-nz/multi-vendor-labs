@@ -1,6 +1,22 @@
 # Addressing Table — Lab 01 CCNA Megalab
 
-> **Last reviewed:** 2026-10-06. Network-device addresses are taken from the harvested configs where available; WLC, server, and Kali details use the source noted in their sections. Known deviations are labeled rather than presented as intended design.
+> Network-device addresses are taken from harvested configs where available. WLC, server, and Kali details reported in older notes are labeled as unverified when config or captured command output is absent.
+
+## Known Live Exceptions
+
+These exceptions are read from the committed configs or explicitly labeled as older reports without supporting output. No device configuration is changed here.
+
+| Area | Known exception / evidence status |
+|------|------------------------------------|
+| DHCP | R1 pool `A-Mgmt` advertises `10.5.0.4` as default router; the planned gateway is `10.0.0.1`. |
+| HSRP | DSW-A2 VLAN 10/20/40 SVIs are administratively down. HSRP is configured, but failover is unverified. |
+| Hostname | ASW-B2 is configured as `AWS-B2`. |
+| DAI | ASW-B3 trusts DAI on a server-facing port. |
+| VTY ACL | Access ACLs differ. R1 and distribution switches permit `10.1.0.0/24` only. ASW-A1 and ASW-B1/B2/B3 also permit `10.0.0.0/24`; ASW-A2/A3 also permit `10.0.0.0/28`. VLAN 99 is within `10.0.0.0/28`, so the harvested configs do not support a blanket claim that all access switches block VLAN 99. SSH behavior is unverified. |
+| Default routes | IPv4 default route is DHCP on R1 Gi0/3 with no floating static route. IPv6 has a floating static route via Gi0/2. |
+| IPv6 | The harvested configs contain IPv6 configuration only on R1, CSW1, and CSW2. |
+| Wireless | Older notes report WLC management on VLAN 99, but no WLC config or captured show output is committed; classify it as configured, unverified. AP registration and client service are unverified. |
+| Outbound HTTPS/TLS | Older notes report stalls and suspect a PNetLab/host MTU issue. The cause is unproven and no test transcript is committed; this remains an open issue. |
 
 ---
 
@@ -16,7 +32,7 @@ VLAN numbers are locally significant. The same VLAN ID can have a different subn
 | Office B | 10 | `10.3.0.0/24` (`255.255.255.0`) | `10.3.0.1` | User/data clients |
 | Office B | 20 | `10.4.0.0/24` (`255.255.255.0`) | `10.4.0.1` | Staff |
 | Office B | 30 | `10.5.0.0/24` (`255.255.255.0`) | `10.5.0.1` | Servers / staff |
-| Office A | 99 | `10.0.0.0/28` (`255.255.255.240`) | `10.0.0.1` | Network management, including WLC `10.0.0.7` |
+| Office A | 99 | `10.0.0.0/28` (`255.255.255.240`) | `10.0.0.1` | Network management; older notes report WLC `10.0.0.7` (unverified) |
 | Office B | 99 | `10.0.0.16/28` (`255.255.255.240`) | `10.0.0.17` | Network management |
 | Both sites | 1000 | — | — | Configured as trunk native VLAN; explicit VLAN database entry unverified |
 | Both sites | 999 | — | — | Parking/blackhole VLAN shown on topology; presence in harvested configs unverified |
@@ -60,7 +76,7 @@ The routed-link blocks are `10.0.0.32/30`, `.36/30`, `.40/30`, `.44/30`, `.48/30
 | Gi0/1 | 10.0.0.33/30 | EUI-64: `2001:DB8:A1::/64` | Link to CSW1 e0/2 | R1.txt |
 | Gi0/0 | 10.0.0.37/30 | EUI-64: `2001:DB8:A2::/64` | Link to CSW2 e0/2 | R1.txt |
 | Gi0/2 | 203.0.113.6/30 | `2001:DB8:B::2/64` | WAN ISP-A (static) | R1.txt |
-| Gi0/3 | DHCP (192.168.146.x) | `2001:DB8:A::2/64` | WAN ISP-B / default route egress | R1.txt |
+| Gi0/3 | DHCP (upstream address not recorded) | `2001:DB8:A::2/64` | WAN ISP-B / default route egress | R1.txt |
 | Loopback0 | 10.0.0.76/32 | — | OSPF Router ID | R1.txt |
 
 **Default route:** `ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/3 dhcp` — via ISP-B (Gi0/3).
@@ -207,29 +223,32 @@ No IPv6 addresses are configured on the distribution/access switches, their SVIs
 
 ## Windows Server — WIN-SV1
 
+Older handoff notes report the following server details, but no server config
+or captured show/scan output is committed. Treat service availability,
+hostname, domain roles, and access methods below as unverified reports.
+
 | Item | Value | Source |
 |------|-------|--------|
-| IP Address | 10.5.0.4 | Live (ping + DNS) |
-| VLAN | 30 (STAFF-B / Servers) | ASW-B3 Et0/2 config |
-| Hostname (DNS) | srv.sankeylab.com | Reverse DNS lookup |
-| OS | Windows Server 2008 R2 (v6.1) | rpcclient srvinfo |
-| Domain | SANKEYLAB / sankeylab.com | rpcclient lsaquery |
-| Roles | PDC, DNS Server, Time Server, Domain Controller | rpcclient srvinfo |
-| SMB | Port 445 open | Live port scan |
-| RDP | Port 3389 open | Live port scan |
-| WinRM | Not enabled (5985/5986 closed) | Live port scan |
-| AD Users | Administrator, Guest, krbtgt, Sankey | rpcclient enumdomusers |
+| IP Address | 10.5.0.4 | Older handoff report; not independently evidenced |
+| VLAN | 30 (STAFF-B / Servers) | ASW-B3 config identifies a server-facing access port |
+| Hostname (DNS) | srv.sankeylab.com | Older handoff report; unverified |
+| OS | Windows Server 2008 R2 (v6.1) | Older handoff report; unverified |
+| Domain | SANKEYLAB / sankeylab.com | Older handoff report; unverified |
+| Roles | PDC, DNS Server, Time Server, Domain Controller | Older handoff report; unverified |
+| SMB / RDP | Ports 445 / 3389 reported open | Older handoff report; unverified |
+| WinRM | Reported as not enabled | Older handoff report; unverified |
+| AD users | Names listed in older handoff notes | Older handoff report; unverified |
 
-**DNS behaviour:** Responds to all `*.SankeyLab` queries — acts as authoritative DNS for the domain.
-All devices use `10.5.0.4` as name-server and `SankeyLab` as domain-name (confirmed in all device configs).
+**Configured DNS option:** The harvested device configs identify `10.5.0.4` as the DNS server and `SankeyLab` as the domain name. DNS response behavior is not proven by those configuration lines.
 
-> **SSH note:** OpenSSH not installed on WIN-SV1. HTTPS download blocked by PNetLab MTU limitation.
-> Access via `impacket-smbexec` from Kali works; use the credentials provided through the authorized local workflow. For example: `impacket-smbexec <domain>/<user>:<password>@10.5.0.4`
-> RDP also available on port 3389.
+> **Access note:** Older notes report that OpenSSH was unavailable and describe SMB/RDP access. These behaviors have no committed command output and remain unverified. Example syntax uses placeholders only: `impacket-smbexec <domain>/<user>:<password>@10.5.0.4`.
 
 ---
 
 ## Management Host — Kali Linux
+
+Interface addresses and connectivity below are recorded in older handoff
+notes; no host config or captured show output is committed.
 
 | Interface | VLAN | IP Address | Purpose |
 |-----------|------|------------|---------|
@@ -237,11 +256,10 @@ All devices use `10.5.0.4` as name-server and `SankeyLab` as domain-name (confir
 | eth2 | 10 | 10.1.0.13/24 | User/access VLAN — source IP for device SSH |
 
 **Connected to:** ASW-A1 (visible in topology as "Linux" node)
-**PNetLab access:** `ssh kali@192.168.146.129 -p 30067` (use the authorized local account credentials; passwords are intentionally omitted)
-**SSH to devices:** Must bind to `10.1.0.14` (eth2) as source — legacy Kex/HostKey/Ciphers required for Cisco IOL.
-**Jump path to Office B ASWs:** Kali (10.1.0.14) → DSW-B1 (10.3.0.2) → ASW-B1/B2/B3
+**SSH to devices:** Older notes describe binding to `10.1.0.14` (eth2) as the source and enabling legacy SSH algorithms for Cisco IOL; this access behavior is not independently verified here.
+**Jump path to Office B ASWs:** Older notes describe Kali (`10.1.0.14`) → DSW-B1 (`10.3.0.2`) → ASW-B1/B2/B3.
 
-> **Note:** ASW VTY ACLs permit `10.1.0.0/24` only — management from eth0 (10.0.0.14) is blocked by implicit deny on A-side ASWs. B-side ASWs (post Sep-20 harvest) permit both `10.1.0.0/24` and `10.0.0.0/24`.
+> **VTY ACL exception:** ACLs vary by device. R1 and distribution switches permit only `10.1.0.0/24`. ASW-A1 and ASW-B1/B2/B3 also permit `10.0.0.0/24`; ASW-A2/A3 also permit `10.0.0.0/28`. Because VLAN 99 is `10.0.0.0/28`, the harvested access-switch ACLs do not support a blanket statement that VLAN 99 is blocked. Successful SSH access is unverified.
 
 ---
 

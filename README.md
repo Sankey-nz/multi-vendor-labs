@@ -8,7 +8,7 @@
 
 ## About
 
-This repository documents practical network engineering labs built in PNetLab with virtual Cisco IOL and IOSv devices. The labs use Cisco IOS-style configuration and real routing and switching protocols inside a virtual topology; they are not physical hardware deployments. The goal is to connect network design decisions to configuration, verification, and troubleshooting.
+This is a Cisco-first network engineering lab repository built around virtual Cisco IOL and IOSv software images in PNetLab. Other vendors are planned. The labs use real vendor network software and routing and switching protocols in a virtual topology; they are not physical hardware deployments. The goal is to connect network design decisions to configuration, verification, and troubleshooting.
 
 ### How to use the repository
 
@@ -48,7 +48,7 @@ The [Lab 01 topology diagram](./labs/lab01-ccna-megalab/topology/topology.png) s
 - **Virtual network OS images:** Cisco IOL, Cisco IOSv (images are not included in this repository)
 - **Automation:** Python, Netmiko, Paramiko
 - **Security:** Kali Linux
-- **Infrastructure:** Windows Server 2008 R2
+- **Infrastructure:** Windows Server 2008 R2, included only as a lab-only legacy server
 
 ---
 
@@ -56,4 +56,4 @@ The [Lab 01 topology diagram](./labs/lab01-ccna-megalab/topology/topology.png) s
 
 **Sankey Silva**
 - LinkedIn: [linkedin.com/in/sankey-silva](https://www.linkedin.com/in/sankey-silva/)
-- GitHub: [github.com/Sankey](https://github.com/Sankey)
+- GitHub: [github.com/Sankey-nz](https://github.com/Sankey-nz)

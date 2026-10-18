@@ -19,13 +19,30 @@ change to update their config files.
 ## Usage
 
 ```bash
-# From the lab root
+# From the repository root
 python labs/lab01-ccna-megalab/scripts/harvest/final_harvest_v5.py
 python labs/lab01-ccna-megalab/scripts/harvest/harvest_aswb_v2.py
 ```
 
-## Requirements
-- `netmiko` — install with `pip install netmiko`
-- Lab devices reachable on the management network (see `addressing-table.md`)
+## Requirements and credentials
 
-Netmiko `4.7.0` was used successfully from the Kali VM for the documented collection. The repository does not currently pin Netmiko in a `requirements.txt`; install it in the environment where the scripts will run.
+Install the pinned dependencies from the lab directory:
+
+```bash
+python -m pip install -r scripts/requirements.txt
+```
+
+Set `CISCO_USERNAME`, `CISCO_PASSWORD`, and `CISCO_ENABLE_SECRET` in the
+environment before running. If a value is unset, interactive runs prompt for
+it (passwords are hidden); non-interactive runs fail with a clear error.
+The ASW-B harvester also requires `KALI_HOST`, `KALI_PORT`, `KALI_USERNAME`,
+and `KALI_PASSWORD`. `.env.example` lists the variable names and placeholders;
+it is not loaded automatically.
+
+Harvested output redacts local authentication directives and SNMP community
+values before writing config snapshots. The snapshots are evidence of
+configuration, not proof of end-to-end service behavior.
+
+Netmiko `4.7.0` is documented as the version used for collection. The
+Paramiko version used was not recorded, so it remains unpinned in
+`scripts/requirements.txt` pending confirmation.

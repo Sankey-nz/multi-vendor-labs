@@ -18,9 +18,7 @@ boot-end-marker
 !
 !
 logging buffered 8192
-enable secret 9 $9$r3vx2EVo6XSv.N$shwFr.7kSeMa0O4ScjsGcdPoFYaFZ5kE7ScxcShyulg
 !
-username cisco secret 9 $9$gCAJuCigdM8nZN$PiNnijEgp.RnkPqlkyUd1QnyBppIGNPyn1yxSi0r4tg
 no aaa new-model
 !
 !
@@ -127,7 +125,6 @@ access-list 1 permit 10.1.0.0 0.0.0.255
 access-list 1 permit 10.0.0.0 0.0.0.255
 !
 !
-snmp-server community SNMPSTRING RO
 !
 control-plane
 !
@@ -143,7 +140,6 @@ line vty 0 4
  login local
  transport input telnet ssh
 !
-ntp authentication-key 1 md5 141411050D 7
 ntp trusted-key 1
 !
 !

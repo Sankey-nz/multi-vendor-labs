@@ -1,30 +1,31 @@
 # Troubleshooting Scripts
 
-Utility scripts used during lab bring-up to diagnose SSH/connectivity issues
-between the Windows host and Cisco IOS/NX-OS devices.
+Utility scripts for read-only SSH reachability checks against the listed Lab 01
+Cisco devices. Running them attempts network connections; this repository
+review did not run them.
 
 ## Scripts
 
 ### `test_connectivity_v2.py`
-Comprehensive reachability test. Attempts a Netmiko SSH connection to every
-device in the lab topology and reports success/failure with latency.
-Use this first when a device appears unreachable.
+Attempts a Netmiko SSH connection to each listed device using the configured
+source address and reports success or failure. It does not measure latency.
 
 ### `test_ssh_legacy.py`
-Attempts SSH using legacy key-exchange algorithms (`diffie-hellman-group1-sha1`,
-`diffie-hellman-group14-sha1`). Useful when a Cisco IOS device refuses the
-default modern algorithms negotiated by OpenSSH/Paramiko.
+Attempts SSH with RSA SHA-2 public-key algorithms disabled. It does not
+configure legacy key-exchange algorithms.
 
 ### `test_ssh_flags.py`
-Tests SSH with various Paramiko transport flags (disabled algorithms, adjusted
-banner timeout, manual auth). Helps narrow down which SSH handshake parameter
-is causing a connection failure.
+Also attempts SSH with RSA SHA-2 public-key algorithms disabled. It currently
+uses the same algorithm restriction as `test_ssh_legacy.py`.
 
 ## Typical workflow
 
-1. Run `test_connectivity_v2.py` to identify which devices are down.
-2. For SSH negotiation failures, try `test_ssh_legacy.py`.
-3. For persistent Paramiko errors, use `test_ssh_flags.py` to isolate the flag.
+1. Set Cisco credentials with the environment variables documented in
+   [`../harvest/README.md`](../harvest/README.md), or run interactively for
+   hidden password prompts.
+2. Run `test_connectivity_v2.py` to check SSH reachability for the listed
+   device addresses.
+3. Use either SSH test script for its RSA SHA-2 compatibility attempt.
 
 ## Requirements
-- `netmiko`, `paramiko` — install with `pip install netmiko paramiko`
+- From the lab root, install with `python -m pip install -r scripts/requirements.txt`.

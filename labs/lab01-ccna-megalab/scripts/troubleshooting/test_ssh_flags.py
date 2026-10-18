@@ -1,20 +1,34 @@
-import subprocess
+import sys
+from pathlib import Path
 
-def run_ssh_cmd(ip, cmd):
-    # Using the flags from the handoff
-    ssh_cmd = [
-        'ssh',
-        '-oKexAlgorithms=+diffie-hellman-group14-sha1',
-        '-oHostKeyAlgorithms=+ssh-rsa',
-        '-oPubkeyAcceptedAlgorithms=+ssh-rsa',
-        '-oStrictHostKeyChecking=no',
-        f'cisco@{ip}',
-        f'enable\npassword class\nterminal length 0\n{cmd}'
-    ]
-    # This won't work with simple subprocess because ssh is interactive.
-    # But we can use 'sshpass' if available, or just rely on the fact that
-    # we are running this on Kali where we might have keys or a specific environment.
-    # Actually, the best way is to use the Netmiko logic but fix the connection.
-    pass
+from netmiko import ConnectHandler
 
-# I'll just write a Python script that uses paramiko with the specific security options.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from runtime_credentials import cisco_credentials
+
+
+def test_ssh(host):
+    connection = ConnectHandler(
+        device_type="cisco_ios",
+        host=host,
+        disabled_algorithms={"pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]},
+        **cisco_credentials(),
+    )
+    try:
+        connection.enable()
+        return connection.send_command("show version | include System image| uptime")
+    finally:
+        connection.disconnect()
+
+
+if __name__ == "__main__":
+    failures = []
+    for host in ("10.0.0.1", "10.0.0.5"):
+        try:
+            print(f"--- {host} ---")
+            print(test_ssh(host))
+        except Exception as error:
+            print(f"{host}: SSH test failed: {error}", file=sys.stderr)
+            failures.append(host)
+    if failures:
+        raise SystemExit(f"SSH test failed for: {', '.join(failures)}")
